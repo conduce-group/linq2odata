@@ -55,8 +55,8 @@ exports.substituteInFilter = function(directory, filesProvidingOData)
         })
         .on('close', function()
         {
-            lineReader.close()
-            console.log( newFile );
+            lineReader.close();
+            fs.writeFileSync(directory+file, newFile);
         });
 
         function handleLine(line)

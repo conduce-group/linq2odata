@@ -2,38 +2,40 @@ import { Observable } from 'rxjs/Rx';
 
 export abstract class ODataProvider<T>
 {
-    let queryResource : string[] = [];
+    private queryResource : string[] = [];
     
-    public Where<T> : (predicate: (value?: T, index?: number, list?: T[]) => boolean) => void;
+    public Where : (predicate: (value?: T, index?: number, list?: T[]) => boolean) => void;
 
     public  get() : Observable<T[]>
     {
-        return getFrom(this.getQuery());
+        return this.getFrom(this.getQuery());
     }
 
-    private abstract getFrom(query : string) : Observable<T[]>;
+    protected abstract getFrom(query : string) : Observable<T[]>;
 
     private getQuery() : string
     {
         let query : string = "";
-        if(queryResource.length > 0)
+        if(this.queryResource.length > 0)
             query = "?";
-        for(index in queryResource)
+        for (var index = 0; index < this.queryResource.length; index++)
         {
             if(index != 0)
                 query += "&";
-            query += queryResource[index];
+            query += this.queryResource[index];
         }
+        
+        return query;
     }
     
     public filter (filterQuery : string) : void
     {
-        this.resource.push("filter=" + filterQuery);
+        this.queryResource.push("filter=" + filterQuery);
     }
 
     public top (topQuery : number) : void
     {
-        this.resource.push("top=" + topQuery);
+        this.queryResource.push("top=" + topQuery);
     }
 
 }

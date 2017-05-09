@@ -16,5 +16,8 @@ var argv = require('yargs')
 var getODataProviders = require('./scourer').getODataProviders;
 var substituteInFilter = require('./scourer').substituteInFilter;
 
-var providers = getODataProviders(argv.o);
-substituteInFilter(argv.s, providers);
+var tsGetODataProviders = require('../dist/FileParser').getODataProviders;
+
+var providers = tsGetODataProviders(argv.o);
+//var providers = getODataProviders(argv.o);
+//substituteInFilter(argv.s, providers);

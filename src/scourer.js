@@ -13,17 +13,21 @@ exports.getODataProviders = function(directory)
     files.forEach( function( file, index )
     {
         fileContent = fs.readFileSync(directory+file);
-        //const re = /class (.*) extends (\w+)/gm;
+        const re = /class (.*) extends (\w+)/gm;
 
-        //while ((m = re.exec(fileContent)) !== null) {
-        //    let classMapping = { [m[1]] : m[2] };
-        //    classExtensionMapping.push(classMapping);
-        //}
-
-        if( fileContent.includes("extends ODataProvider") )
-        {
-            filesProvidingOData.push(path.resolve(directory+file.replace(".js","")));
+        while ((m = re.exec(fileContent)) !== null) {
+            if(m[2] == "ODataProvider")
+            {
+             
+            }
+            let classMapping = { [m[1]] : m[2] };
+            classExtensionMapping.push(classMapping);
         }
+
+        //if( fileContent.includes("extends ODataProvider") )
+        //{
+        //    filesProvidingOData.push(path.resolve(directory+file.replace(".js","")));
+        //}
     });
 
     //console.log(classExtensionMapping);

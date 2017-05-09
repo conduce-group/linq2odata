@@ -83,7 +83,7 @@ class LINQOData
     static identifier(name)
     {
         //need to know type of identifier
-        return "\"+" + name + "+\"";
+        return "\'+" + name + "+\'";
     }
     
     //(property: est.Expression): string

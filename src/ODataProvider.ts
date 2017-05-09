@@ -8,10 +8,10 @@ export abstract class ODataProvider<T>
 
     public  get() : Observable<T[]>
     {
-        return this.getFrom(this.getQuery());
+        return this.getFromQuery(this.getQuery());
     }
 
-    protected abstract getFrom(query : string) : Observable<T[]>;
+    protected abstract getFromQuery(query : string) : Observable<T[]>;
 
     private getQuery() : string
     {
@@ -30,12 +30,12 @@ export abstract class ODataProvider<T>
     
     public filter (filterQuery : string) : void
     {
-        this.queryResource.push("filter=" + filterQuery);
+        this.queryResource.push("$filter=" + filterQuery);
     }
 
     public top (topQuery : number) : void
     {
-        this.queryResource.push("top=" + topQuery);
+        this.queryResource.push("$top=" + topQuery);
     }
 
 }

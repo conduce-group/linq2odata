@@ -5,7 +5,7 @@ var ODataProvider = (function () {
         this.queryResource = [];
     }
     ODataProvider.prototype.get = function () {
-        return this.getFrom(this.getQuery());
+        return this.getFromQuery(this.getQuery());
     };
     ODataProvider.prototype.getQuery = function () {
         var query = "";
@@ -19,10 +19,10 @@ var ODataProvider = (function () {
         return query;
     };
     ODataProvider.prototype.filter = function (filterQuery) {
-        this.queryResource.push("filter=" + filterQuery);
+        this.queryResource.push("$filter=" + filterQuery);
     };
     ODataProvider.prototype.top = function (topQuery) {
-        this.queryResource.push("top=" + topQuery);
+        this.queryResource.push("$top=" + topQuery);
     };
     return ODataProvider;
 }());

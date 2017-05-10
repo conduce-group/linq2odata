@@ -13,11 +13,13 @@ var argv = require('yargs')
   .alias('h', 'help')
   .argv;
 
-var getODataProviders = require('./scourer').getODataProviders;
-var substituteInFilter = require('./scourer').substituteInFilter;
+//var getODataProviders = require('./scourer').getODataProviders;
+//var substituteInFilter = require('./scourer').substituteInFilter;
 
 var tsGetODataProviders = require('../dist/FileParser').getODataProviders;
+var replaceWhereWithFilter = require('../dist/FileParser').replaceWhereWithFilter;
 
 var providers = tsGetODataProviders(argv.o);
+replaceWhereWithFilter(argv.s, providers);
 //var providers = getODataProviders(argv.o);
 //substituteInFilter(argv.s, providers);

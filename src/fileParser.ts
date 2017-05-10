@@ -2,34 +2,70 @@ import * as esprima from 'esprima';
 import * as est from 'estree';
 import * as fs from 'fs';
 
-// ODP = ODataProvider
+const odpImportString: string = "linq2odata/dist/ODataProvider";
+const odpClassName: string = "ODataProvider";
 
-let odpImportString: string = "linq2odata/dist/ODataProvider";
-
-export function getODataProviders(directory: string): string[]
+export class ExportMapping
 {
-    let filesProvidingOData: string[] = [];
-    let classExtensionMapping = [];
+    public filePath: string;
+    public className: string;
+}
+
+
+/**
+ * Checks a directory for files defining ODataProvider (ODP), assuming only one definition per file
+ * @param {string} directory
+ * @return {ExportMapping[]} all odataproviders in the directory
+ */
+export function getODataProviders(directory: string): ExportMapping[] 
+{
+    let oDataProviders: ExportMapping[] = [];
 
     let files = fs.readdirSync(directory);
     for (var index in files)
     {
         let fileContent = fs.readFileSync(directory + files[index]);
-        let thing = fileContent.toString();
-        let syntaxTree = esprima.parse(thing);
+        let syntaxTree = esprima.parse(fileContent.toString());
         debugger;
-        let [importName, lineNum] = getNameAndLineODPImport(syntaxTree);
-        if (lineNum > 0)
+        let [importName, importLine] = getNameAndLineODPImport(syntaxTree) as [string, number];
+        if (importLine > -1)
         {
-            let [extendeeName, lineNum] = getNameAndLineODPImport(syntaxTree);
-            if (lineNum > 0)
+            let [extendeeName, extendeeLine] = getNameAndLineOfODPExtendee(syntaxTree, importLine);
+            if (extendeeLine > 0)
             {
-                   
+                let [exportName, exportLine] = checkODPExtendeeExported(syntaxTree, extendeeLine, extendeeName);
+                if (exportLine > 0)
+                {
+                    oDataProviders.push({ filePath: directory + files[index], className: exportName })
+                }
             }
         }
     }
 
-    return filesProvidingOData;
+    return oDataProviders;
+}
+
+/**
+ * Safely gets a nested property, due to typescripts current abscence of elevis operators, null if not possible
+ * @param {any} object
+ * @param {string[]} properties
+ * @return {any} nested property
+ */
+function getNestedElement(object: any, properties: string[]): any
+{
+    for (var index in properties)
+    {
+        if (object[properties[index]])
+        {
+            object = object[properties[index]];
+        }
+        else
+        {
+            return null;
+        }
+
+    }
+    return object;
 }
 
 function getNameAndLineODPImport(st: est.Program): [string, number]
@@ -37,17 +73,9 @@ function getNameAndLineODPImport(st: est.Program): [string, number]
     for (var lineNum in st.body)
     {
         if (
-            //Check types as no elvis operator... [yet?]
-            st.body[lineNum].type == "VariableDeclaration" &&
-            (st.body[lineNum] as est.VariableDeclaration).declarations &&
-            (st.body[lineNum] as est.VariableDeclaration).declarations[0].type == "VariableDeclarator" &&
-            ((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id.type == "Identifier" &&
-            ((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init.type == "CallExpression" &&
-            (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).arguments[0].type == "Literal" &&
-            //Check that the import is for linq2odata
-            ((((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression)
-                .arguments[0] as est.Literal).value == odpImportString
-            )
+            getNestedElement(st.body[lineNum], ["declarations", "0", "id", "type"]) === "Identifier" &&
+            getNestedElement(st.body[lineNum], ["declarations", "0", "init", "arguments", "0", "value"]) === odpImportString
+        )
         {
             return [
                 (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id as est.Identifier).name,
@@ -58,40 +86,48 @@ function getNameAndLineODPImport(st: est.Program): [string, number]
     return ["", -1];
 }
 
-function getNameAndLineOfODPExtendee(st: est.Program, lineNum :number): [string, number]
+function getNameAndLineOfODPExtendee(st: est.Program, currentlineNum: number): [string, number]
 {
-    for (var index = lineNum; index < st.body.length; index++)
+    for (var lineNum = currentlineNum; lineNum < st.body.length; lineNum++)
     {
         if (
-            st.body[lineNum].type == "VariableDeclaration" &&
-            (st.body[lineNum] as est.VariableDeclaration).declarations &&
-            (st.body[lineNum] as est.VariableDeclaration).declarations[0].type == "VariableDeclarator" &&
-            ((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id.type == 'Identifier' &&
-            ((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init.type == "CallExpression" &&
-            (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).callee.type == 'FunctionExpression' &&
-            (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).arguments[0].type == 'MemberExpression' &&
-            ((((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).arguments[0] as est.MemberExpression).property.type == 'Identifier' &&
-            getNestedElement(body[lineNum], {"declarations","0","init","arguments","0","property","name"})
-            (((((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).arguments[0] as est.MemberExpression).property as est.Identifier).name == "ODataProvider"
-            )
+            getNestedElement(st.body[lineNum], ["declarations", "0", "init", "callee", "type"]) === 'FunctionExpression' &&
+            getNestedElement(st.body[lineNum], ["declarations", "0", "init", "arguments", "0", "property", "name"]) === odpClassName
+        )
         {
             return [
                 (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id as est.Identifier).name,
                 lineNum
-            ]
+            ];
         }
     }
     return ["", -1];
 }
 
-function getNameAndLineOfODPExtendee(st: est.Program, lineNum: number): [string, number]
+function checkODPExtendeeExported(st: est.Program, currentlineNum: number, oDPExtendeeName: string): [string, number]
 {
-    for (var index = lineNum; index < st.body.length; index++)
+    for (var lineNum = currentlineNum; lineNum < st.body.length; lineNum++)
     {
         if (
-            )
+            getNestedElement(st.body[lineNum], ["expression", "right", "name"]) === oDPExtendeeName &&
+            getNestedElement(st.body[lineNum], ["expression", "left", "object", "name"]) === "exports"
+        )
         {
-
+            return [
+                ((((st.body[lineNum] as est.ExpressionStatement).expression as est.AssignmentExpression).left as est.MemberExpression).object as est.Identifier).name,
+                lineNum
+            ];
         }
+    }
+    return ["", -1];
+}
+
+export function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void
+{
+    let files = fs.readdirSync(directory);
+    for (var index in files)
+    {
+        let fileContent = fs.readFileSync(directory + files[index]);
+        let syntaxTree = esprima.parse(fileContent.toString());
     }
 }

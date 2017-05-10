@@ -22,3 +22,10 @@ export function getNestedElement(object: any, properties: string[]): any
     return object;
 }
 
+export class ExportMapping
+{
+    public filePath: string;
+    public className: string;
+}
+
+

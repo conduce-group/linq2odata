@@ -12,3 +12,9 @@ function getNestedElement(object, properties) {
     return object;
 }
 exports.getNestedElement = getNestedElement;
+var ExportMapping = (function () {
+    function ExportMapping() {
+    }
+    return ExportMapping;
+}());
+exports.ExportMapping = ExportMapping;

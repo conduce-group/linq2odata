@@ -7,4 +7,7 @@ export declare abstract class ODataProvider<T> {
     private getQuery();
     filter(filterQuery: string): void;
     top(topQuery: number): void;
+    skip(skipQuery: number): void;
+    count(): void;
+    orderby(field: string): void;
 }

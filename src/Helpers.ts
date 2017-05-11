@@ -27,5 +27,3 @@ export class ExportMapping
     public filePath: string;
     public className: string;
 }
-
-

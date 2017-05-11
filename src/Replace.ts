@@ -3,9 +3,8 @@ import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LINQOData } from './LINQOData';
+import { filterKeyword } from './Constants';
 import { getNestedElement, ExportMapping } from './Helpers'
-
-const filterKeyword: string = "filter(";
 
 export class WhereRange
 {
@@ -17,7 +16,6 @@ export class WhereRange
 }
 type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "Other";
 type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement;
-
 
 
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void
@@ -33,13 +31,17 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
             let newFilter = LINQOData.FilterFromWhereArgument(
                 fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument)
             );
-            let newFileContent =
+            fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
                 + filterKeyword 
                 + newFilter
                 + fileContent.substr(fileWheres[whereIndex].endArgument);
-
-            console.log(newFileContent);
+            //fs.writeFileSync(directory + files[index], fileContent);
+        }
+        if (fileWheres.length > 0)
+        {
+            console.log(fileContent);
+            console.log(fileWheres.length + " replacement for " + files[index]);
         }
     }
 }
@@ -60,7 +62,7 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
                 wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps));
                 break;
             case "Decorator":
-
+                //check  types of arguments
                 break;
             case "Where":
                 let whereRange = getWhere(line as est.CallExpression);

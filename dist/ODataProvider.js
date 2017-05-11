@@ -24,6 +24,15 @@ var ODataProvider = (function () {
     ODataProvider.prototype.top = function (topQuery) {
         this.queryResource.push("$top=" + topQuery);
     };
+    ODataProvider.prototype.skip = function (skipQuery) {
+        this.queryResource.push("$skip=" + skipQuery);
+    };
+    ODataProvider.prototype.count = function () {
+        this.queryResource.push("$count=true");
+    };
+    ODataProvider.prototype.orderby = function (field) {
+        this.queryResource.push("$orderby=" + field);
+    };
     return ODataProvider;
 }());
 exports.ODataProvider = ODataProvider;

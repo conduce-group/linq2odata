@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import { ExportMapping, getNestedElement } from './Helpers'
 import { odpImportString, odpClassName } from './Constants'
 
+type expressionTypes = "Import" | "FncExp" | "Export" | "Other";
+type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression;
 
 /**
  * Checks a directory for files defining ODataProvider (ODP), assuming only one definition per file
@@ -19,23 +21,70 @@ export function getODataProviders(directory: string): ExportMapping[]
     {
         let fileContent = fs.readFileSync(directory + files[index]);
         let syntaxTree = esprima.parse(fileContent.toString());
-        let [importName, importLine] = getNameAndLineODPImport(syntaxTree) as [string, number];
-        if (importLine > -1)
+        for (var lineNum in syntaxTree)
         {
-            let [extendeeName, extendeeLine] = getNameAndLineOfODPExtendee(syntaxTree, importLine);
-            if (extendeeLine > 0)
+            let [lineClassification, line] = getLineType(syntaxTree[lineNum]);
+            switch (lineClassification)
             {
-                let [exportName, exportLine] = checkODPExtendeeExported(syntaxTree, extendeeLine, extendeeName);
-                if (exportLine > 0)
-                {
-                    oDataProviders.push({ filePath: directory + files[index], className: exportName })
-                }
+                case "Import":
+                    break;
+                case "FncExp":
+                    break;
+                case "Export":
+                    getExporteeIfODPExtendee();
+                    break;
+                default:
+                    break;
             }
+
         }
     }
 
     return oDataProviders;
 }
+//let [importName, importLine] = getNameAndLineODPImport(syntaxTree) as [string, number];
+//if (importLine > -1)
+//{
+//    let [extendeeName, extendeeLine] = getNameAndLineOfODPExtendee(syntaxTree, importLine);
+//    if (extendeeLine > 0)
+//    {
+//        let [exportName, exportLine] = checkODPExtendeeExported(syntaxTree, extendeeLine, extendeeName);
+//        if (exportLine > 0)
+//        {
+//            oDataProviders.push({ filePath: directory + files[index], className: exportName })
+//        }
+//    }
+//}
+
+function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
+{
+    let lineType = ["Other", null] as [expressionTypes, estLineTypes];
+    // Import statement
+    if (getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require')
+    {
+        lineType = ["Import", getNestedElement(line, ["declarations", "0", "init"]) as est.CallExpression];
+    }
+    // FncExp Expressions
+    else if (getNestedElement(line, ["declarations", "0", "init", "callee", "type"]) === 'FunctionExpression')
+    {
+        lineType = ["FncExp", getNestedElement(line, ["declarations", "0", "init", "callee"]) as est.FunctionExpression];
+    }
+    else if (getNestedElement(line, ["type"]) === 'FunctionExpression')
+    {
+        lineType = ["FncExp", line as est.FunctionExpression];
+    }
+    else if (getNestedElement(line, ["expression", "right", "type"]) === 'FunctionExpression')
+    {
+        lineType = ["FncExp", getNestedElement(line, ["expression", "right"]) as est.FunctionExpression];
+    }
+    // Export Expression
+    else if (getNestedElement(line, ["expression", "left", "object", "name"]) === "exports")
+    {
+        lineType = ["Export", getNestedElement(line, ["expression"]) as est.AssignmentExpression];
+    }
+    return lineType;
+}
+
 
 function getNameAndLineODPImport(st: est.Program): [string, number]
 {
@@ -73,22 +122,13 @@ function getNameAndLineOfODPExtendee(st: est.Program, currentlineNum: number): [
     return ["", -1];
 }
 
-function checkODPExtendeeExported(st: est.Program, currentlineNum: number, oDPExtendeeName: string): [string, number]
+function getExporteeIfODPExtendee(line: est.AssignmentExpression, oDPExtendeeName: string): string | null
 {
-    for (var lineNum = currentlineNum; lineNum < st.body.length; lineNum++)
+    if (getNestedElement(line, ["right", "name"]) === oDPExtendeeName)
     {
-        if (
-            getNestedElement(st.body[lineNum], ["expression", "right", "name"]) === oDPExtendeeName &&
-            getNestedElement(st.body[lineNum], ["expression", "left", "object", "name"]) === "exports"
-        )
-        {
-            return [
-                ((((st.body[lineNum] as est.ExpressionStatement).expression as est.AssignmentExpression).left as est.MemberExpression).object as est.Identifier).name,
-                lineNum
-            ];
-        }
+        return (( line.left as est.MemberExpression).object as est.Identifier).name;
     }
-    return ["", -1];
+    return null;
 }
 
 

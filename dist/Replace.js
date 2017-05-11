@@ -4,8 +4,8 @@ var esprima = require("esprima");
 var fs = require("fs");
 var path = require("path");
 var LINQOData_1 = require("./LINQOData");
+var Constants_1 = require("./Constants");
 var Helpers_1 = require("./Helpers");
-var filterKeyword = "filter(";
 var WhereRange = (function () {
     function WhereRange() {
     }
@@ -20,11 +20,15 @@ function replaceWhereWithFilter(directory, odps) {
         var fileWheres = getWheresInBody(syntaxTree.body, directory, odps);
         for (var whereIndex in fileWheres) {
             var newFilter = LINQOData_1.LINQOData.FilterFromWhereArgument(fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument));
-            var newFileContent = fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
-                + filterKeyword
-                + newFilter
-                + fileContent.substr(fileWheres[whereIndex].endArgument);
-            console.log(newFileContent);
+            fileContent =
+                fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
+                    + Constants_1.filterKeyword
+                    + newFilter
+                    + fileContent.substr(fileWheres[whereIndex].endArgument);
+        }
+        if (fileWheres.length > 0) {
+            console.log(fileContent);
+            console.log(fileWheres.length + " replacement for " + files[index]);
         }
     }
 }

@@ -39,9 +39,12 @@ Currently, messily. This should not be used in any serious projects in it's curr
 
 ## Todo
 - [ ] MVP
-  + [ ] Replace Where clause at least once
-  + [ ] Add basic querying options, top, count, etc
-  + [ ] split out file parsers
-- [ ] Non Angular2 Where replacement
-- [ ] allow parent extending
+  + [x] Replace Where clause at least once
+  + [x] Add basic querying options, top, count, etc
+  + [x] split out file parsers
+  + [ ] allow parent extending
+  + [ ] test e2e
+- [ ] null checking TS
+- [ ] ensure replacement on correct object type 
+    - [ ] Non Angular2 Where replacement
 - [ ] lazy eval??

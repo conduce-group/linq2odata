@@ -36,6 +36,7 @@ Currently, messily. This should not be used in any serious projects in it's curr
 2. You use require to import into a variable that is used [used in `FileParser::getNameAndLineODPImport`]
 3. Currently, that your ODataProvider is injected via by Angular2 method
 4. Currently, that you do not extend to use parent's definition of an ODP
+5. Currently, that you do not use multiple declarations of classes on one line
 
 ## Todo
 - [ ] MVP
@@ -43,7 +44,12 @@ Currently, messily. This should not be used in any serious projects in it's curr
   + [x] Add basic querying options, top, count, etc
   + [x] split out file parsers
   + [ ] allow parent extending
+    - currently rewriting line parsing to go through each line checking type and what to do, as in replacer
+      + should go through and build import/export trees, then check odp's across trees, not in file...
   + [ ] test e2e
+- [ ] better checking of lines
+  + iterate over all declarations instead of assuming it's in first one of line
+  + ensure that a class has class-y things in it
 - [ ] null checking TS
 - [ ] ensure replacement on correct object type 
     - [ ] Non Angular2 Where replacement

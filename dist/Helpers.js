@@ -12,6 +12,12 @@ function getNestedElement(object, properties) {
     return object;
 }
 exports.getNestedElement = getNestedElement;
+function addIfNotNull(array, toAdd) {
+    if (toAdd) {
+        array.push(toAdd);
+    }
+}
+exports.addIfNotNull = addIfNotNull;
 var ExportMapping = (function () {
     function ExportMapping() {
     }

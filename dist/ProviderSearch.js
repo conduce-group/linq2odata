@@ -9,21 +9,47 @@ function getODataProviders(directory) {
     var files = fs.readdirSync(directory);
     for (var index in files) {
         var fileContent = fs.readFileSync(directory + files[index]);
-        var syntaxTree = esprima.parse(fileContent.toString());
-        var _a = getNameAndLineODPImport(syntaxTree), importName = _a[0], importLine = _a[1];
-        if (importLine > -1) {
-            var _b = getNameAndLineOfODPExtendee(syntaxTree, importLine), extendeeName = _b[0], extendeeLine = _b[1];
-            if (extendeeLine > 0) {
-                var _c = checkODPExtendeeExported(syntaxTree, extendeeLine, extendeeName), exportName = _c[0], exportLine = _c[1];
-                if (exportLine > 0) {
-                    oDataProviders.push({ filePath: directory + files[index], className: exportName });
-                }
+        var syntaxTree = esprima.parse(fileContent.toString()).body;
+        debugger;
+        var extendeeNames = [];
+        var exportExtendeeNames = [];
+        for (var lineNum in syntaxTree) {
+            var _a = getLineType(syntaxTree[lineNum]), lineClassification = _a[0], line = _a[1];
+            switch (lineClassification) {
+                case "Import":
+                    break;
+                case "FncExp":
+                    break;
+                case "Export":
+                    Helpers_1.addIfNotNull(exportExtendeeNames, getExporteeIfODPExtendee(line, extendeeNames));
+                    break;
+                default:
+                    break;
             }
         }
     }
     return oDataProviders;
 }
 exports.getODataProviders = getODataProviders;
+function getLineType(line) {
+    var lineType = ["Other", null];
+    if (Helpers_1.getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require') {
+        lineType = ["Import", Helpers_1.getNestedElement(line, ["declarations", "0", "init"])];
+    }
+    else if (Helpers_1.getNestedElement(line, ["declarations", "0", "init", "callee", "type"]) === 'FunctionExpression') {
+        lineType = ["FncExp", Helpers_1.getNestedElement(line, ["declarations", "0", "init", "callee"])];
+    }
+    else if (Helpers_1.getNestedElement(line, ["type"]) === 'FunctionExpression') {
+        lineType = ["FncExp", line];
+    }
+    else if (Helpers_1.getNestedElement(line, ["expression", "right", "type"]) === 'FunctionExpression') {
+        lineType = ["FncExp", Helpers_1.getNestedElement(line, ["expression", "right"])];
+    }
+    else if (Helpers_1.getNestedElement(line, ["expression", "left", "object", "name"]) === "exports") {
+        lineType = ["Export", Helpers_1.getNestedElement(line, ["expression"])];
+    }
+    return lineType;
+}
 function getNameAndLineODPImport(st) {
     for (var lineNum in st.body) {
         if (Helpers_1.getNestedElement(st.body[lineNum], ["declarations", "0", "id", "type"]) === "Identifier" &&
@@ -48,15 +74,12 @@ function getNameAndLineOfODPExtendee(st, currentlineNum) {
     }
     return ["", -1];
 }
-function checkODPExtendeeExported(st, currentlineNum, oDPExtendeeName) {
-    for (var lineNum = currentlineNum; lineNum < st.body.length; lineNum++) {
-        if (Helpers_1.getNestedElement(st.body[lineNum], ["expression", "right", "name"]) === oDPExtendeeName &&
-            Helpers_1.getNestedElement(st.body[lineNum], ["expression", "left", "object", "name"]) === "exports") {
-            return [
-                st.body[lineNum].expression.left.object.name,
-                lineNum
-            ];
+function getExporteeIfODPExtendee(line, oDPExtendeeNames) {
+    var exportName = Helpers_1.getNestedElement(line, ["right", "name"]);
+    for (var index in oDPExtendeeNames) {
+        if (exportName === oDPExtendeeNames[index]) {
+            return line.left.object.name;
         }
     }
-    return ["", -1];
+    return null;
 }

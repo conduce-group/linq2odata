@@ -22,6 +22,14 @@ export function getNestedElement(object: any, properties: string[]): any
     return object;
 }
 
+export function addIfNotNull(array: any[], toAdd: any): void
+{
+    if (toAdd)
+    {
+        array.push(toAdd);
+    }
+}
+
 export class ExportMapping
 {
     public filePath: string;

@@ -1,11 +1,11 @@
 import * as esprima from 'esprima';
 import * as est from 'estree';
 import * as fs from 'fs';
-import { ExportMapping, getNestedElement } from './Helpers'
+import { ExportMapping, getNestedElement, addIfNotNull } from './Helpers'
 import { odpImportString, odpClassName } from './Constants'
 
-type expressionTypes = "Import" | "FncExp" | "Export" | "Other";
-type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression;
+type expressionTypes = "Import" | "MaybeClass" | "FncExp" | "Export" | "Other";
+type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression | est.FunctionExpression | est.VariableDeclarator;
 
 /**
  * Checks a directory for files defining ODataProvider (ODP), assuming only one definition per file
@@ -20,7 +20,10 @@ export function getODataProviders(directory: string): ExportMapping[]
     for (var index in files)
     {
         let fileContent = fs.readFileSync(directory + files[index]);
-        let syntaxTree = esprima.parse(fileContent.toString());
+        let syntaxTree = esprima.parse(fileContent.toString()).body;
+        debugger;
+        let extendeeNames: string[] = [];
+        let exportedExtendeeNames: string[] = [];
         for (var lineNum in syntaxTree)
         {
             let [lineClassification, line] = getLineType(syntaxTree[lineNum]);
@@ -28,10 +31,14 @@ export function getODataProviders(directory: string): ExportMapping[]
             {
                 case "Import":
                     break;
+                case "MaybeClass":
+                    addIfNotNull(extendeeNames, getNameIfExportee(line as est.VariableDeclarator));
+                    break;
                 case "FncExp":
+
                     break;
                 case "Export":
-                    getExporteeIfODPExtendee();
+                    addIfNotNull(exportedExtendeeNames, getExporteeIfODPExtendee(line as est.AssignmentExpression, extendeeNames));
                     break;
                 default:
                     break;
@@ -56,6 +63,32 @@ export function getODataProviders(directory: string): ExportMapping[]
 //    }
 //}
 
+function getExporteeIfODPExtendee(line: est.AssignmentExpression, oDPExtendeeNames: string[]): string | null
+{
+    let exportName = getNestedElement(line, ["right", "name"]);
+    for (var index in oDPExtendeeNames)
+    {
+        if (exportName === oDPExtendeeNames[index])
+        {
+            return ((line.left as est.MemberExpression).object as est.Identifier).name;
+        }
+    }
+    return null;
+}
+
+function getNameIfExportee(line: est.VariableDeclarator): string | null
+{
+    if (
+        getNestedElement(line, ["id", "type"]) === "Identifier" &&
+        getNestedElement(line, ["init", "arguments", "0", "value"]) === odpImportString
+    )
+    {
+        return 
+        ((line as est.VariableDeclarator).id as est.Identifier).name;
+    }
+    return null;
+}
+
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
 {
     let lineType = ["Other", null] as [expressionTypes, estLineTypes];
@@ -64,10 +97,18 @@ function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expressio
     {
         lineType = ["Import", getNestedElement(line, ["declarations", "0", "init"]) as est.CallExpression];
     }
+    // MaybeClass Expressions
+    else if (
+        getNestedElement(line, ["declarations", "0", "init", "callee", "type"]) === 'FunctionExpression' &&
+        getNestedElement(line, ["declarations", "0", "init", "arguments", "length"]) > 0
+    )
+    {
+        lineType = ["MaybeClass", getNestedElement(line, ["declarations", "0"]) as est.VariableDeclarator];
+    }
     // FncExp Expressions
     else if (getNestedElement(line, ["declarations", "0", "init", "callee", "type"]) === 'FunctionExpression')
     {
-        lineType = ["FncExp", getNestedElement(line, ["declarations", "0", "init", "callee"]) as est.FunctionExpression];
+        lineType = ["FncExp", getNestedElement(line, ["declarations", "0", "init", "callee"]) as est.VariableDeclarator];
     }
     else if (getNestedElement(line, ["type"]) === 'FunctionExpression')
     {
@@ -83,25 +124,6 @@ function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expressio
         lineType = ["Export", getNestedElement(line, ["expression"]) as est.AssignmentExpression];
     }
     return lineType;
-}
-
-
-function getNameAndLineODPImport(st: est.Program): [string, number]
-{
-    for (var lineNum in st.body)
-    {
-        if (
-            getNestedElement(st.body[lineNum], ["declarations", "0", "id", "type"]) === "Identifier" &&
-            getNestedElement(st.body[lineNum], ["declarations", "0", "init", "arguments", "0", "value"]) === odpImportString
-        )
-        {
-            return [
-                (((st.body[lineNum] as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id as est.Identifier).name,
-                Number(lineNum)
-            ];
-        }
-    }
-    return ["", -1];
 }
 
 function getNameAndLineOfODPExtendee(st: est.Program, currentlineNum: number): [string, number]
@@ -121,15 +143,3 @@ function getNameAndLineOfODPExtendee(st: est.Program, currentlineNum: number): [
     }
     return ["", -1];
 }
-
-function getExporteeIfODPExtendee(line: est.AssignmentExpression, oDPExtendeeName: string): string | null
-{
-    if (getNestedElement(line, ["right", "name"]) === oDPExtendeeName)
-    {
-        return (( line.left as est.MemberExpression).object as est.Identifier).name;
-    }
-    return null;
-}
-
-
-

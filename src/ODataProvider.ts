@@ -17,13 +17,19 @@ export abstract class ODataProvider<T>
     {
         let query: string = "";
         if (this.queryResource.length > 0)
+        {
             query = "?";
+        }
         for (var index = 0; index < this.queryResource.length; index++)
         {
             if (index != 0)
+            {
                 query += "&";
+            }
             query += this.queryResource[index];
         }
+
+        this.queryResource = [];
 
         return query;
     }

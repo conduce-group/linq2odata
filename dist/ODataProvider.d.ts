@@ -5,9 +5,9 @@ export declare abstract class ODataProvider<T> {
     get(): Observable<T[]>;
     protected abstract getFromQuery(query: string): Observable<T[]>;
     private getQuery();
-    filter(filterQuery: string): void;
-    top(topQuery: number): void;
-    skip(skipQuery: number): void;
-    count(): void;
-    orderby(field: string): void;
+    filter(filterQuery: string): ODataProvider<T>;
+    top(topQuery: number): ODataProvider<T>;
+    skip(skipQuery: number): ODataProvider<T>;
+    count(): ODataProvider<T>;
+    orderby(field: string): ODataProvider<T>;
 }

@@ -83,8 +83,7 @@ function getNameIfExportee(line: est.VariableDeclarator): string | null
         getNestedElement(line, ["init", "arguments", "0", "value"]) === odpImportString
     )
     {
-        return 
-        ((line as est.VariableDeclarator).id as est.Identifier).name;
+        return ((line as est.VariableDeclarator).id as est.Identifier).name;
     }
     return null;
 }

@@ -34,28 +34,33 @@ export abstract class ODataProvider<T>
         return query;
     }
 
-    public filter(filterQuery: string): void
+    public filter(filterQuery: string): ODataProvider<T>
     {
         this.queryResource.push("$filter=" + filterQuery);
+        return this;
     }
 
-    public top(topQuery: number): void
+    public top(topQuery: number): ODataProvider<T>
     {
         this.queryResource.push("$top=" + topQuery);
+        return this;
     }
 
-    public skip(skipQuery: number): void
+    public skip(skipQuery: number): ODataProvider<T>
     {
         this.queryResource.push("$skip=" + skipQuery);
+        return this;
     }
 
-    public count(): void
+    public count(): ODataProvider<T>
     {
         this.queryResource.push("$count=true");
+        return this;
     }
 
-    public orderby(field: string): void
+    public orderby(field: string): ODataProvider<T>
     {
         this.queryResource.push("$orderby=" + field);
+        return this;
     }
 }

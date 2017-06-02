@@ -6,12 +6,12 @@ export abstract class ODataProvider<T>
 
     public Where: (predicate: (value?: T, index?: number, list?: T[]) => boolean) => void;
 
-    public get(): Observable<T[]>
+    public get(): Observable<any>
     {
         return this.getFromQuery(this.getQuery());
     }
 
-    protected abstract getFromQuery(query: string): Observable<T[]>;
+    protected abstract getFromQuery(query: string): Observable<any>;
 
     private getQuery(): string
     {

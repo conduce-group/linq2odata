@@ -60,8 +60,6 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
         {
             case "Import":
                 let odpclass = getODPClassIfODPFile(line as est.CallExpression, directory, odps);
-                console.log(line);
-                debugger;
                 if (odpclass)
                 {
                     hasImport = true;

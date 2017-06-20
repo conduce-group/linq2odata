@@ -18,3 +18,5 @@ var replaceWhereWithFilter = require('../dist/Operations/Replace').replaceWhereW
 
 var providers = getODataProviders(argv.o);
 replaceWhereWithFilter(argv.s, providers);
+
+process.exit(0);

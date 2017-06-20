@@ -42,8 +42,6 @@ function getWheresInBody(body, directory, odps) {
         switch (lineClassification) {
             case "Import":
                 var odpclass = getODPClassIfODPFile(line, directory, odps);
-                console.log(line);
-                debugger;
                 if (odpclass) {
                     hasImport = true;
                 }

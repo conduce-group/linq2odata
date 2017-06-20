@@ -1,10 +1,12 @@
+///<reference path="../node_modules/rxjs/Observable.d.ts"/>
+///<reference path="../node_modules/rxjs/operator/toPromise.d.ts"/>
 import { Observable } from 'rxjs/Rx';
 
 export abstract class ODataProvider<T>
 {
     private queryResource: string[] = [];
 
-    public Where: (predicate: (value?: T, index?: number, list?: T[]) => boolean) => void;
+    public Where: (predicate: (value?: T) => boolean) => void;
 
     public get(): Observable<any>
     {

@@ -15,9 +15,13 @@ var LINQOData = (function () {
     }
     LINQOData.FilterFromWhereArgument = function (predicate) {
         var predicateSource = predicate.replace("function (", "function predicate(");
+        debugger;
         var syntax = esprima.parse(predicateSource);
         var toTraverse = Helpers_1.getNestedElement(syntax, ["body", "0", "body", "body", "0"]).argument;
-        var newFncBody = "\"" + LINQOData.traverse(toTraverse) + "\"";
+        var newFncBody = "";
+        if (toTraverse != null) {
+            newFncBody = "\"" + LINQOData.traverse(toTraverse) + "\"";
+        }
         return newFncBody;
     };
     LINQOData.traverse = function (toTraverse) {
@@ -45,7 +49,15 @@ var LINQOData = (function () {
             + " (" + LINQOData.traverse(right) + ") ";
     };
     LINQOData.literal = function (rawValue) {
-        return typeof rawValue == 'string' ? "'" + rawValue + "'" : rawValue.toString();
+        if (rawValue != null) {
+            if (typeof (rawValue) == "object") {
+                throw "RegExp not accepted";
+            }
+            return typeof rawValue == 'string' ? "'" + rawValue + "'" : rawValue.toString();
+        }
+        else {
+            throw "Null raw value from literal";
+        }
     };
     LINQOData.identifier = function (name) {
         return "\"+" + name + "+\"";

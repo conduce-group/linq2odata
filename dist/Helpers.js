@@ -16,11 +16,27 @@ function addIfNotNull(array, toAdd) {
     if (toAdd) {
         array.push(toAdd);
     }
+    return toAdd;
 }
 exports.addIfNotNull = addIfNotNull;
+function arrayContains(array, toCheck) {
+    for (var index in array) {
+        if (toCheck === array[index]) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.arrayContains = arrayContains;
 var ExportMapping = (function () {
     function ExportMapping() {
     }
     return ExportMapping;
 }());
 exports.ExportMapping = ExportMapping;
+var PossibleODPClass = (function () {
+    function PossibleODPClass() {
+    }
+    return PossibleODPClass;
+}());
+exports.PossibleODPClass = PossibleODPClass;

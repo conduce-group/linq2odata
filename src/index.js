@@ -18,23 +18,3 @@ var replaceWhereWithFilter = require('../dist/Replace').replaceWhereWithFilter;
 
 var providers = getODataProviders(argv.o);
 replaceWhereWithFilter(argv.s, providers);
-
-
-//var parser = require("shift-parser").parseScript;
-//var scoper = require("shift-scope");
-//var fs = require( 'fs');
-
-
-//function scopeIT(directory)
-//{
-//    let files = fs.readdirSync(directory);
-//    for (var index in files)
-//    {
-//        let fileContent = fs.readFileSync(directory + files[index]).toString();
-//        let scopeTree = scoper.analyze(parser(fileContent));
-//        debugger;
-    
-//    }
-
-//}
-//scopeIT(argv.o);

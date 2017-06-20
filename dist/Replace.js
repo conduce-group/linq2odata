@@ -25,10 +25,7 @@ function replaceWhereWithFilter(directory, odps) {
                     + Constants_1.filterKeyword
                     + newFilter
                     + fileContent.substr(fileWheres[whereIndex].endArgument);
-        }
-        if (fileWheres.length > 0) {
-            console.log(fileContent);
-            console.log(fileWheres.length + " replacement for " + files[index]);
+            fs.writeFileSync(directory + files[index], fileContent);
         }
     }
 }
@@ -59,7 +56,7 @@ function getWheresInBody(body, directory, odps) {
     return wheres;
 }
 function getLineType(line) {
-    var lineType = ["Other", null];
+    var lineType = ["Other", "Other"];
     if (Helpers_1.getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require') {
         lineType = ["Import", Helpers_1.getNestedElement(line, ["declarations", "0", "init"])];
     }

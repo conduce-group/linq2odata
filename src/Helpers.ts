@@ -22,16 +22,38 @@ export function getNestedElement(object: any, properties: string[]): any
     return object;
 }
 
-export function addIfNotNull(array: any[], toAdd: any): void
+export function addIfNotNull(array: any[], toAdd: any): any
 {
     if (toAdd)
     {
         array.push(toAdd);
     }
+
+    return toAdd;
+}
+
+export function arrayContains(array: any[], toCheck: any): boolean
+{
+    for (var index in array)
+    {
+        if (toCheck === array[index])
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 export class ExportMapping
 {
     public filePath: string;
     public className: string;
+}
+
+export class PossibleODPClass
+{
+    public exportedName: string;
+    public extendsName: string;
+    public extendsFile: string
 }

@@ -1,11 +1,12 @@
 import * as esprima from 'esprima';
 import * as est from 'estree';
 import * as fs from 'fs';
-import { ExportMapping, getNestedElement, addIfNotNull } from './Helpers'
-import { odpImportString, odpClassName } from './Constants'
+import * as path from 'path';
+import { PossibleODPClass, ExportMapping, getNestedElement, addIfNotNull, arrayContains } from './Helpers'
+import { odpImportString, odpClassName, defaultExtension } from './Constants'
 
 type expressionTypes = "Import" | "MaybeClass" | "FncExp" | "Export" | "Other";
-type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression | est.FunctionExpression | est.VariableDeclarator;
+type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression | est.FunctionExpression | est.VariableDeclarator | est.VariableDeclaration | "Other";
 
 /**
  * Checks a directory for files defining ODataProvider (ODP), assuming only one definition per file
@@ -14,87 +15,245 @@ type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberEx
  */
 export function getODataProviders(directory: string): ExportMapping[] 
 {
-    let oDataProviders: ExportMapping[] = [];
+    let files: string[] = fs.readdirSync(directory);
+    let odpDictionary: { [file: string]: string[] } = {};
+    odpDictionary[odpImportString] = [odpClassName];
+    let possibleODP: { [file: string]: PossibleODPClass[] } = {};
 
-    let files = fs.readdirSync(directory);
     for (var index in files)
     {
-        let fileContent = fs.readFileSync(directory + files[index]);
+        let filename = path.resolve(directory, files[index]);
+        let fileContent = fs.readFileSync(filename);
         let syntaxTree = esprima.parse(fileContent.toString()).body;
-        debugger;
-        let extendeeNames: string[] = [];
-        let exportedExtendeeNames: string[] = [];
+        let imports: { [importName: string]: string } = {};
+        let extendees: { [extendeeName: string]: [string, string] } = {};
+        let exportedClasses: { [exportName: string]: string } = {};
+
         for (var lineNum in syntaxTree)
         {
             let [lineClassification, line] = getLineType(syntaxTree[lineNum]);
             switch (lineClassification)
             {
                 case "Import":
+                    let importResult = getImportName(line as est.VariableDeclaration);
+                    if (importResult)
+                    {
+                        let [importFile, importVariableName] = importResult;
+                        if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0)
+                        {
+                            importFile = path.resolve(directory, importFile);
+
+                            var fileExtensionRegex = /.*\/*.*\..+/g;
+                            var result = importFile.match(fileExtensionRegex);
+                            if (result === null)
+                            {
+                                importFile += defaultExtension;
+                            }
+                        }
+
+                        imports[importVariableName] = importFile;
+                    }
                     break;
                 case "MaybeClass":
-                    addIfNotNull(extendeeNames, getNameIfExportee(line as est.VariableDeclarator));
-                    break;
-                case "FncExp":
-
+                    let classResult = getClassAndParentName(line as est.VariableDeclarator);
+                    if (classResult)
+                    {
+                        let [className, parentName] = classResult;
+                        extendees[className] = parentName;
+                    }
                     break;
                 case "Export":
-                    addIfNotNull(exportedExtendeeNames, getExporteeIfODPExtendee(line as est.AssignmentExpression, extendeeNames));
+                    let exportResult = getExporteeIfODPExtendee(line as est.AssignmentExpression, Object.keys(extendees));
+                    if (exportResult)
+                    {
+                        let [className, exportName] = exportResult;
+                        exportedClasses[className] = exportName;
+                    }
                     break;
                 default:
                     break;
             }
-
         }
+
+        possibleODP[filename] = populatePossibleODPS(exportedClasses, extendees, imports);
     }
+
+    odpDictionary = recurseODPImplementors(odpDictionary, possibleODP);
+    let oDataProviders: ExportMapping[] = dictionaryToExportMapping(odpDictionary);
 
     return oDataProviders;
 }
-//let [importName, importLine] = getNameAndLineODPImport(syntaxTree) as [string, number];
-//if (importLine > -1)
-//{
-//    let [extendeeName, extendeeLine] = getNameAndLineOfODPExtendee(syntaxTree, importLine);
-//    if (extendeeLine > 0)
-//    {
-//        let [exportName, exportLine] = checkODPExtendeeExported(syntaxTree, extendeeLine, extendeeName);
-//        if (exportLine > 0)
-//        {
-//            oDataProviders.push({ filePath: directory + files[index], className: exportName })
-//        }
-//    }
-//}
 
-function getExporteeIfODPExtendee(line: est.AssignmentExpression, oDPExtendeeNames: string[]): string | null
+function populatePossibleODPS(exportedClasses: { [exportName: string]: string }, extendees: { [extendeeName: string]: [string, string] }, imports: { [importName: string]: string }): PossibleODPClass[] 
 {
-    let exportName = getNestedElement(line, ["right", "name"]);
-    for (var index in oDPExtendeeNames)
+    let possibleODPs: PossibleODPClass[] = [];
+
+    for (var exportClassName in exportedClasses)
     {
-        if (exportName === oDPExtendeeNames[index])
+        if (extendees[exportClassName])
         {
-            return ((line.left as est.MemberExpression).object as est.Identifier).name;
+            let [parentFileAlias, parentClass]: [string, string] = extendees[exportClassName];
+            if (imports[parentFileAlias])
+            {
+                possibleODPs.push
+                    ({
+                        exportedName: exportClassName,
+                        extendsName: parentClass,
+                        extendsFile: imports[parentFileAlias]
+                    } as PossibleODPClass);
+            }
+        }
+        else
+        {
+            //DEAL WITH SELF IMPORTS RECURSIVELY
         }
     }
+
+    return possibleODPs;
+}
+
+function dictionaryToExportMapping(odpDictionary: { [file: string]: string[] }): ExportMapping[]
+{
+    let result: ExportMapping[] = [];
+
+    for (var filename in odpDictionary)
+    {
+        for (var classNameIndex in odpDictionary[filename])
+        {
+            result.push({
+                filePath: filename,
+                className: odpDictionary[filename][classNameIndex]
+            } as ExportMapping);
+        }
+    }
+
+    return result;
+}
+
+function recurseODPImplementors(odpDictionary: { [file: string]: string[] }, possibleODP: { [file: string]: PossibleODPClass[] }, change: boolean = true): { [file: string]: string[] } 
+{
+    if (!change)
+    {
+        return odpDictionary;
+    }
+
+    let nextPossibleODPs: { [file: string]: PossibleODPClass[] } = {};
+    let thisChange: boolean = false;
+
+    for (var filename in possibleODP)
+    {
+        nextPossibleODPs[filename] = [];
+
+        for (var exportIndex in possibleODP[filename])
+        {
+            if (extendsODP(possibleODP[filename][exportIndex], odpDictionary))
+            {
+                if (!odpDictionary[filename])
+                {
+                    odpDictionary[filename] = [];
+                }
+                odpDictionary[filename].push(possibleODP[filename][exportIndex].exportedName);
+                thisChange = true;
+            }
+            else
+            {
+                nextPossibleODPs[filename].push(possibleODP[filename][exportIndex]);
+            }
+        }
+    }
+
+    return recurseODPImplementors(odpDictionary, nextPossibleODPs, thisChange);
+}
+
+function extendsODP(testClass: PossibleODPClass, odpDictionary: { [file: string]: string[] }): boolean
+{
+    return arrayContains(odpDictionary[testClass.extendsFile], testClass.extendsName);
+}
+
+function getImportName(line: est.VariableDeclaration): [string, string] | null
+{
+    if (
+        getNestedElement(line, ["declarations", "0", "id", "type"]) === "Identifier" &&
+        getNestedElement(line, ["declarations", "0", "init", "arguments", "0", "value"])
+    )
+    {
+        return [
+            (((((line as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).init as est.CallExpression).arguments[0] as est.Literal).value as string),
+            (((line as est.VariableDeclaration).declarations[0] as est.VariableDeclarator).id as est.Identifier).name
+        ];
+    }
+
     return null;
 }
 
-function getNameIfExportee(line: est.VariableDeclarator): string | null
+function getExporteeIfODPExtendee(line: est.AssignmentExpression, oDPExtendeeNames: string[]): [string, string] | null
+{
+    let exportName = getNestedElement(line, ["right", "name"]);
+
+    if (arrayContains(oDPExtendeeNames, exportName))
+    {
+        return [
+            ((line.left as est.MemberExpression).property as est.Identifier).name,
+            exportName
+        ];
+    }
+
+    return null;
+}
+
+function isExtendee(line: est.VariableDeclarator): boolean
+{
+    let result: boolean = false;
+
+    if (
+        getNestedElement(line, ["id", "type"]) === "Identifier" &&
+        getNestedElement(line, ["init", "arguments", "0", "value"])
+    )
+    {
+        result = true;
+    }
+
+    return result;
+}
+
+function getClassNameIfExtendee(line: est.VariableDeclarator, importedODPs: string[]): string | null
+{
+    let parentName = getNestedElement(line, ["init", "arguments", "0", "value"]);
+
+    if (arrayContains(importedODPs, parentName))
+    {
+        return ((line as est.VariableDeclarator).id as est.Identifier).name;
+    }
+
+    return null;
+}
+
+function getClassAndParentName(line: est.VariableDeclarator): [string, [string, string]] | null
 {
     if (
         getNestedElement(line, ["id", "type"]) === "Identifier" &&
-        getNestedElement(line, ["init", "arguments", "0", "value"]) === odpImportString
+        getNestedElement(line, ["init", "arguments", "0", "object", "name"])
     )
     {
-        return ((line as est.VariableDeclarator).id as est.Identifier).name;
+        let parentFileAndClass: [string, string] = [
+            getNestedElement(line, ["init", "arguments", "0", "object", "name"]),
+            getNestedElement(line, ["init", "arguments", "0", "property", "name"])
+        ];
+        return [
+            ((line as est.VariableDeclarator).id as est.Identifier).name,
+            parentFileAndClass
+        ];
     }
     return null;
 }
 
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
 {
-    let lineType = ["Other", null] as [expressionTypes, estLineTypes];
+    let lineType = ["Other", "Other"] as [expressionTypes, estLineTypes];
     // Import statement
     if (getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require')
     {
-        lineType = ["Import", getNestedElement(line, ["declarations", "0", "init"]) as est.CallExpression];
+        lineType = ["Import", line as est.VariableDeclaration];
     }
     // MaybeClass Expressions
     else if (

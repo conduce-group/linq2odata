@@ -8,24 +8,30 @@ interface IOpMap
 }
 
 const operatorMapping: IOpMap =
-{
-    "==": "eq",
-    "!=": "ne",
-    ">": "gt",
-    ">=": "ge",
-    "<": "lt",
-    "<=": "le"
-}
+    {
+        "==": "eq",
+        "!=": "ne",
+        ">": "gt",
+        ">=": "ge",
+        "<": "lt",
+        "<=": "le"
+    }
 
 export class LINQOData
 {
-    public static FilterFromWhereArgument<T>(predicate:string): string
+    public static FilterFromWhereArgument<T>(predicate: string): string
     {
         let predicateSource = predicate.replace("function (", "function predicate(");
+        debugger;
         var syntax = esprima.parse(predicateSource);
         let toTraverse = (getNestedElement(syntax, ["body", "0", "body", "body", "0"]) as est.ReturnStatement).argument;
 
-        let newFncBody = "\"" + LINQOData.traverse(toTraverse) + "\"";
+        let newFncBody = "";
+        if (toTraverse != null)
+        {
+            newFncBody = "\"" + LINQOData.traverse(toTraverse) + "\"";
+        }
+
         return newFncBody;
     }
 
@@ -64,12 +70,19 @@ export class LINQOData
 
     static literal(rawValue: string | boolean | number | null | RegExp): string
     {
-        //if (typeof rawValue == 'RegExp')
-        //{
-        //    throw "RegExp not accepted";
-        //}
+        if (rawValue != null)
+        {
+            if (typeof(rawValue) == "object")
+            {
+                throw "RegExp not accepted";
+            }
 
-        return typeof rawValue == 'string' ? "'" + rawValue + "'" : rawValue.toString();
+            return typeof rawValue == 'string' ? "'" + rawValue + "'" : rawValue.toString();
+        }
+        else
+        {
+            throw "Null raw value from literal";
+        }
     }
 
     static identifier(name: string): string

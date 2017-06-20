@@ -31,11 +31,13 @@ Import ODataProvider to your class and implement the `GetFromQuery(query :string
 Currently, messily. This should not be used in any serious projects in it's current state due to the relative unsafe nature of how it assumes class files are separated, named and used.
 
 ## Assumptions
-0. That everything is in scope always. Yeah, that's bad - make a pull request. So naming another variable the same naem with the same Where will get linq2odata confused
-1. You import `ODataProvider` from 'linq2odata/dist/ODataProvider' [see FileParser.ts constants to change]
-2. You use require to import into a variable that is used [used in `FileParser::getNameAndLineODPImport`]
-3. Currently, that your ODataProvider is injected via by Angular2 method
-4. Currently, that you do not extend to use parent's definition of an ODP
+0. That everything is in scope always. Yeah, that's bad - make a pull request. So naming another variable the same name with the same `Where` will get linq2odata confused
+1. Constants:
+    - Import `ODataProvider` from 'linq2odata/dist/ODataProvider' [see Constants.ts to change]
+    - Use require to import into a variable that is used [used in `FileParser::getNameAndLineODPImport`]
+    - Default file ending of `.js` [see Constants.ts to change]
+3. That relative file imports are done starting with "./" or "../"
+4. Currently, that your ODataProvider is injected via by Angular2 method
 5. Currently, that you do not use multiple declarations of classes on one line
 
 ## Todo
@@ -43,13 +45,14 @@ Currently, messily. This should not be used in any serious projects in it's curr
   + [x] Replace Where clause at least once
   + [x] Add basic querying options, top, count, etc
   + [x] split out file parsers
-  + [ ] allow parent extending
+  + [x] allow parent extending
     - currently rewriting line parsing to go through each line checking type and what to do, as in replacer
       + should go through and build import/export trees, then check odp's across trees, not in file...
   + [ ] test e2e
 - [ ] better checking of lines
   + iterate over all declarations instead of assuming it's in first one of line
   + ensure that a class has class-y things in it
+- [ ] Deal with multiple definitions in same file
 - [ ] null checking TS
 - [ ] ensure replacement on correct object type 
     - [ ] Non Angular2 Where replacement

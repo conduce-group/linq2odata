@@ -15,7 +15,7 @@ export class WhereRange
     public endWhereKeyword: number;
 }
 type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "Other";
-type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement;
+type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | "Other";
 
 
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void
@@ -36,13 +36,12 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
                 + filterKeyword 
                 + newFilter
                 + fileContent.substr(fileWheres[whereIndex].endArgument);
-            //fs.writeFileSync(directory + files[index], fileContent);
+            fs.writeFileSync(directory + files[index], fileContent);
         }
-        if (fileWheres.length > 0)
-        {
-            console.log(fileContent);
-            console.log(fileWheres.length + " replacement for " + files[index]);
-        }
+        //if (fileWheres.length > 0)
+        //{
+        //    console.log(fileWheres.length + " replacement for " + files[index]);
+        //}
     }
 }
 
@@ -81,7 +80,7 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
 
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
 {
-    let lineType = ["Other", null] as [expressionTypes, estLineTypes];
+    let lineType = ["Other", "Other"] as [expressionTypes, estLineTypes];
     // Import statement
     if (getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require')
     {
@@ -113,7 +112,7 @@ function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expressio
     return lineType;
 }
 
-function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps: ExportMapping[]): string
+function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps: ExportMapping[]): string | null
 {
     var className = null;
     let odpClassName = getODPClassIfInODPs(
@@ -127,7 +126,7 @@ function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps:
 
     return className;
 
-    function getODPClassIfInODPs(fileName: string, odps: ExportMapping[]): string
+    function getODPClassIfInODPs(fileName: string, odps: ExportMapping[]): string | null
     {
         for (var index in odps)
         {
@@ -136,6 +135,7 @@ function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps:
                 return odps[index].className;
             }
         }
+
         return null;
     }
 }

@@ -1,5 +1,7 @@
 "use strict";
 exports.__esModule = true;
+var fs = require("fs");
+var path = require("path");
 function getNestedElement(object, properties) {
     for (var index in properties) {
         if (object[properties[index]]) {
@@ -12,6 +14,21 @@ function getNestedElement(object, properties) {
     return object;
 }
 exports.getNestedElement = getNestedElement;
+function recurseFolders(dir, filelist) {
+    var files = fs.readdirSync(dir);
+    filelist = filelist || [];
+    files.forEach(function (file) {
+        if (fs.statSync(dir + file).isDirectory()) {
+            filelist = recurseFolders(dir + file + '/', filelist);
+        }
+        else if (file.match(/.*\.js$/)) {
+            filelist.push(path.join(dir, file));
+        }
+    });
+    return filelist;
+}
+exports.recurseFolders = recurseFolders;
+;
 function addIfNotNull(array, toAdd) {
     if (toAdd) {
         array.push(toAdd);
@@ -28,15 +45,3 @@ function arrayContains(array, toCheck) {
     return false;
 }
 exports.arrayContains = arrayContains;
-var ExportMapping = (function () {
-    function ExportMapping() {
-    }
-    return ExportMapping;
-}());
-exports.ExportMapping = ExportMapping;
-var PossibleODPClass = (function () {
-    function PossibleODPClass() {
-    }
-    return PossibleODPClass;
-}());
-exports.PossibleODPClass = PossibleODPClass;

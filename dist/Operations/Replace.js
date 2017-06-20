@@ -4,8 +4,8 @@ var esprima = require("esprima");
 var fs = require("fs");
 var path = require("path");
 var LINQOData_1 = require("./LINQOData");
-var Constants_1 = require("./Constants");
-var Helpers_1 = require("./Helpers");
+var Constants_1 = require("../Structure/Constants");
+var Helpers_1 = require("../Structure/Helpers");
 var WhereRange = (function () {
     function WhereRange() {
     }
@@ -13,9 +13,10 @@ var WhereRange = (function () {
 }());
 exports.WhereRange = WhereRange;
 function replaceWhereWithFilter(directory, odps) {
-    var files = fs.readdirSync(directory);
+    var files = Helpers_1.recurseFolders(directory, []);
     for (var index in files) {
-        var fileContent = fs.readFileSync(directory + files[index]).toString();
+        var filename = files[index];
+        var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
         var fileWheres = getWheresInBody(syntaxTree.body, directory, odps);
         for (var whereIndex in fileWheres) {
@@ -25,18 +26,27 @@ function replaceWhereWithFilter(directory, odps) {
                     + Constants_1.filterKeyword
                     + newFilter
                     + fileContent.substr(fileWheres[whereIndex].endArgument);
-            fs.writeFileSync(directory + files[index], fileContent);
+        }
+        if (fileWheres.length > 0) {
+            console.log(fileContent);
+            console.log(fileWheres.length + " replacement for " + filename);
         }
     }
 }
 exports.replaceWhereWithFilter = replaceWhereWithFilter;
 function getWheresInBody(body, directory, odps) {
+    var hasImport = false;
     var wheres = [];
     for (var lineNum in body) {
         var _a = getLineType(body[lineNum]), lineClassification = _a[0], line = _a[1];
         switch (lineClassification) {
             case "Import":
                 var odpclass = getODPClassIfODPFile(line, directory, odps);
+                console.log(line);
+                debugger;
+                if (odpclass) {
+                    hasImport = true;
+                }
                 break;
             case "FncExp":
                 wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps));
@@ -53,7 +63,7 @@ function getWheresInBody(body, directory, odps) {
                 break;
         }
     }
-    return wheres;
+    return hasImport ? wheres : [];
 }
 function getLineType(line) {
     var lineType = ["Other", "Other"];

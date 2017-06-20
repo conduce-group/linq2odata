@@ -1,11 +1,16 @@
 # Linq 2 OData  
 A simplistic script to replace your TypeScript written linq with odata filter.  
-See Section 'How is it done' why you should not use this yet.
 
-## Why?  
+## How  
+0. Put in your `package.json` :  `"linq2odata": "conduce-group/linq2odata"`
+1. Import ODataProvider to your class and implement the `GetFromQuery(query :string)` method (this should do the request to your OData Endpoint, adding query to the end of your request)
+2. Write some 
+3. If using `Where()` --> as part of your build run `node ./node_modules/.bin/linq2odata -o <ODataProvider/Extendees/Directory> -s <Directory/Using/ODataProviders>`
+
+## Why
 Easier to type Linq than lookup filter protocol, no?
 
-### But why as a macro  
+### But why as a macro for Where  
 Two reasons:
 1. Linq requires compilation/transpilation, starting a compiler/esprima at runtime ain't great on the ol' CPU  
 2. As you need some dynamic scoping to access those variables that you can get to in the linq via closure, if it wasn't done compile time you'd need some runtime eval like so:  
@@ -16,21 +21,24 @@ var g_ = eval("(" + String(newFnc) + ")");
 g_();
 ```
 
-## How  
-Import ODataProvider to your class and implement the `GetFromQuery(query :string)` method to do the request to your OData Endpoint, adding query to the end of your request.
-
 ## Features  
-- ==
-- !=
-- >
-- >=
-- <
-- <=
++ `filter(filterQuery: string)`
++ `top(topQuery: number)`
++ `skip(skipQuery: number)`
++ `count()`
++ `orderby(field: string)`
++ `Where(predicate: {(T) => boolean})`
+    - ==
+    - !=
+    - >
+    - >=
+    - <
+    - <=
 
 ## How is it done
-Currently, messily. This should not be used in any serious projects in it's current state due to the relative unsafe nature of how it assumes class files are separated, named and used.
+Currently, messily. But it looks over the `-o` folder recursively finding all those who extend ODataProvider, or who extend and extendee or who extendee an extendee of an extendee etc.. Then it'll search over `-s` folder recursively looking for those who import an extendee and use `.Where` on __any__ variable. These will be replaced by `.filter()` statements.
 
-## Assumptions
+### Assumptions
 0. That everything is in scope always. Yeah, that's bad - make a pull request. So naming another variable the same name with the same `Where` will get linq2odata confused
 1. Constants:
     - Import `ODataProvider` from 'linq2odata/dist/ODataProvider' [see Constants.ts to change]
@@ -56,4 +64,3 @@ Currently, messily. This should not be used in any serious projects in it's curr
 - [ ] null checking TS
 - [ ] ensure replacement on correct object type 
     - [ ] Non Angular2 Where replacement
-- [ ] lazy eval??

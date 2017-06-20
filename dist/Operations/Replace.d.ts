@@ -1,4 +1,4 @@
-import { ExportMapping } from './Helpers';
+import { ExportMapping } from '../Structure/Classes';
 export declare class WhereRange {
     startArgument: number;
     endArgument: number;

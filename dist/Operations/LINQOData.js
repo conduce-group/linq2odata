@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var esprima = require("esprima");
-var Helpers_1 = require("./Helpers");
+var Helpers_1 = require("../Structure/Helpers");
 var operatorMapping = {
     "==": "eq",
     "!=": "ne",

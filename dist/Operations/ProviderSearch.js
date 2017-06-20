@@ -3,15 +3,15 @@ exports.__esModule = true;
 var esprima = require("esprima");
 var fs = require("fs");
 var path = require("path");
-var Helpers_1 = require("./Helpers");
-var Constants_1 = require("./Constants");
+var Helpers_1 = require("../Structure/Helpers");
+var Constants_1 = require("../Structure/Constants");
 function getODataProviders(directory) {
-    var files = fs.readdirSync(directory);
+    var files = Helpers_1.recurseFolders(directory, []);
     var odpDictionary = {};
     odpDictionary[Constants_1.odpImportString] = [Constants_1.odpClassName];
     var possibleODP = {};
     for (var index in files) {
-        var filename = path.resolve(directory, files[index]);
+        var filename = files[index];
         var fileContent = fs.readFileSync(filename);
         var syntaxTree = esprima.parse(fileContent.toString()).body;
         var imports = {};

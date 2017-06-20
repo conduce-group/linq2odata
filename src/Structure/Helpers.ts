@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Safely gets a nested property, due to typescripts current abscence of elevis operators, null if not possible
@@ -22,6 +24,24 @@ export function getNestedElement(object: any, properties: string[]): any
     return object;
 }
 
+export function recurseFolders(dir : string, filelist: string[]) : string[]
+{
+    let files :string[] = fs.readdirSync(dir);
+    filelist = filelist || [];
+    files.forEach(function (file : string)
+    {
+        if (fs.statSync(dir + file).isDirectory())
+        {
+            filelist = recurseFolders(dir + file + '/', filelist);
+        }
+        else if (file.match(/.*\.js$/))
+        {
+            filelist.push(path.join(dir, file));
+        }
+    });
+    return filelist;
+};
+
 export function addIfNotNull(array: any[], toAdd: any): any
 {
     if (toAdd)
@@ -45,15 +65,3 @@ export function arrayContains(array: any[], toCheck: any): boolean
     return false;
 }
 
-export class ExportMapping
-{
-    public filePath: string;
-    public className: string;
-}
-
-export class PossibleODPClass
-{
-    public exportedName: string;
-    public extendsName: string;
-    public extendsFile: string
-}

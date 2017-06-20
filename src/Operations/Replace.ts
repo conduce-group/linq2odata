@@ -3,8 +3,9 @@ import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LINQOData } from './LINQOData';
-import { filterKeyword } from './Constants';
-import { getNestedElement, ExportMapping } from './Helpers'
+import { filterKeyword } from '../Structure/Constants';
+import { ExportMapping } from '../Structure/Classes'
+import { getNestedElement, recurseFolders } from '../Structure/Helpers'
 
 export class WhereRange
 {
@@ -20,10 +21,11 @@ type estLineTypes = est.CallExpression | est.FunctionExpression | est.Expression
 
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void
 {
-    let files = fs.readdirSync(directory);
+    let files = recurseFolders(directory, []);
     for (var index in files)
     {
-        let fileContent = fs.readFileSync(directory + files[index]).toString();
+        let filename: string = files[index];
+        let fileContent = fs.readFileSync(filename).toString();
         let syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
         let fileWheres = getWheresInBody(syntaxTree.body, directory, odps);
         for (var whereIndex in fileWheres)
@@ -33,21 +35,24 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
             );
             fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
-                + filterKeyword 
+                + filterKeyword
                 + newFilter
                 + fileContent.substr(fileWheres[whereIndex].endArgument);
-            fs.writeFileSync(directory + files[index], fileContent);
+            //fs.writeFileSync(filename, fileContent);
         }
-        //if (fileWheres.length > 0)
-        //{
-        //    console.log(fileWheres.length + " replacement for " + files[index]);
-        //}
+        if (fileWheres.length > 0)
+        {
+            console.log(fileContent);
+            console.log(fileWheres.length + " replacement for " + filename);
+        }
     }
 }
 
 function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[]): WhereRange[]
 {
+    let hasImport: boolean = false;
     let wheres = [] as WhereRange[];
+
     for (var lineNum in body)
     {
         let [lineClassification, line] = getLineType(body[lineNum]);
@@ -55,7 +60,12 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
         {
             case "Import":
                 let odpclass = getODPClassIfODPFile(line as est.CallExpression, directory, odps);
-
+                console.log(line);
+                debugger;
+                if (odpclass)
+                {
+                    hasImport = true;
+                }
                 break;
             case "FncExp":
                 wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps));
@@ -75,7 +85,7 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
         }
     }
 
-    return wheres;
+    return hasImport ? wheres : [];
 }
 
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
@@ -153,7 +163,7 @@ function getWhere(fnc: est.CallExpression): WhereRange | null
     let possibleRangeKeyword = getNestedElement(fnc, ["callee", "property", "range"]);
     if (possibleRangeArgument && possibleRangeKeyword)
     {
-        possibleRanges =  {
+        possibleRanges = {
             startArgument: possibleRangeArgument[0],
             endArgument: possibleRangeArgument[1],
             startWhereKeyword: possibleRangeKeyword[0],

@@ -2,8 +2,9 @@ import * as esprima from 'esprima';
 import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PossibleODPClass, ExportMapping, getNestedElement, addIfNotNull, arrayContains } from './Helpers'
-import { odpImportString, odpClassName, defaultExtension } from './Constants'
+import { PossibleODPClass, ExportMapping } from '../Structure/Classes'
+import { recurseFolders, getNestedElement, addIfNotNull, arrayContains } from '../Structure/Helpers'
+import { odpImportString, odpClassName, defaultExtension } from '../Structure/Constants'
 
 type expressionTypes = "Import" | "MaybeClass" | "FncExp" | "Export" | "Other";
 type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression | est.FunctionExpression | est.VariableDeclarator | est.VariableDeclaration | "Other";
@@ -15,14 +16,14 @@ type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberEx
  */
 export function getODataProviders(directory: string): ExportMapping[] 
 {
-    let files: string[] = fs.readdirSync(directory);
+    let files: string[] = recurseFolders(directory, []);
     let odpDictionary: { [file: string]: string[] } = {};
     odpDictionary[odpImportString] = [odpClassName];
     let possibleODP: { [file: string]: PossibleODPClass[] } = {};
 
     for (var index in files)
     {
-        let filename = path.resolve(directory, files[index]);
+        let filename = files[index];
         let fileContent = fs.readFileSync(filename);
         let syntaxTree = esprima.parse(fileContent.toString()).body;
         let imports: { [importName: string]: string } = {};
@@ -84,6 +85,7 @@ export function getODataProviders(directory: string): ExportMapping[]
     return oDataProviders;
 }
 
+
 function populatePossibleODPS(exportedClasses: { [exportName: string]: string }, extendees: { [extendeeName: string]: [string, string] }, imports: { [importName: string]: string }): PossibleODPClass[] 
 {
     let possibleODPs: PossibleODPClass[] = [];
@@ -105,7 +107,7 @@ function populatePossibleODPS(exportedClasses: { [exportName: string]: string },
         }
         else
         {
-            //DEAL WITH SELF IMPORTS RECURSIVELY
+            // insert method to deal with multiple classes in one file here
         }
     }
 

@@ -13,8 +13,8 @@ var argv = require('yargs')
   .alias('h', 'help')
   .argv;
 
-var getODataProviders = require('../dist/ProviderSearch').getODataProviders;
-var replaceWhereWithFilter = require('../dist/Replace').replaceWhereWithFilter;
+var getODataProviders = require('../dist/Operations/ProviderSearch').getODataProviders;
+var replaceWhereWithFilter = require('../dist/Operations/Replace').replaceWhereWithFilter;
 
 var providers = getODataProviders(argv.o);
 replaceWhereWithFilter(argv.s, providers);

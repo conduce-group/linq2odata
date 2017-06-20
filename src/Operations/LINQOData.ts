@@ -1,6 +1,6 @@
 ﻿import * as esprima from 'esprima';
 import * as est from 'estree';
-import { getNestedElement } from './Helpers'
+import { getNestedElement } from '../Structure/Helpers'
 
 interface IOpMap 
 {

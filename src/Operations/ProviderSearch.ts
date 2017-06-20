@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PossibleODPClass, ExportMapping } from '../Structure/Classes'
 import { recurseFolders, getNestedElement, addIfNotNull, arrayContains } from '../Structure/Helpers'
-import { odpImportString, odpClassName, defaultExtension } from '../Structure/Constants'
+import { odpImportString, odpClassName, defaultExtension, iODPImportString, iODPClassName } from '../Structure/Constants'
 
 type expressionTypes = "Import" | "MaybeClass" | "FncExp" | "Export" | "Other";
 type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberExpression | est.FunctionExpression | est.VariableDeclarator | est.VariableDeclaration | "Other";
@@ -19,6 +19,7 @@ export function getODataProviders(directory: string): ExportMapping[]
     let files: string[] = recurseFolders(directory, []);
     let odpDictionary: { [file: string]: string[] } = {};
     odpDictionary[odpImportString] = [odpClassName];
+    odpDictionary[iODPImportString] = [iODPClassName];
     let possibleODP: { [file: string]: PossibleODPClass[] } = {};
 
     for (var index in files)
@@ -84,7 +85,6 @@ export function getODataProviders(directory: string): ExportMapping[]
 
     return oDataProviders;
 }
-
 
 function populatePossibleODPS(exportedClasses: { [exportName: string]: string }, extendees: { [extendeeName: string]: [string, string] }, imports: { [importName: string]: string }): PossibleODPClass[] 
 {

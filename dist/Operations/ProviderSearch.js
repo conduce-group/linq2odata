@@ -9,6 +9,7 @@ function getODataProviders(directory) {
     var files = Helpers_1.recurseFolders(directory, []);
     var odpDictionary = {};
     odpDictionary[Constants_1.odpImportString] = [Constants_1.odpClassName];
+    odpDictionary[Constants_1.iODPImportString] = [Constants_1.iODPClassName];
     var possibleODP = {};
     for (var index in files) {
         var filename = files[index];

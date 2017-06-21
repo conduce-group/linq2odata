@@ -8,9 +8,9 @@ A simplistic script to replace your TypeScript written linq with odata filter.
 2. You're ready to use most of the functionality!
 
 ### For use of `Where` and Predicates  
-As part of your build process run: 
-	`node ./node_modules/.bin/linq2odata -o <ODataProvider/Extendees/Directory> -s <Directory/Using/ODataProviders>`
-	`-h` for help
+As part of your build process run:  
+   `node ./node_modules/.bin/linq2odata -o <ODataProvider/Extendees/Directory> -s <Directory/Using/ODataProviders>`  
+   `-h` for help
 
 
 ## Features  

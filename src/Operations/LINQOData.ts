@@ -22,7 +22,6 @@ export class LINQOData
     public static FilterFromWhereArgument<T>(predicate: string): string
     {
         let predicateSource = predicate.replace("function (", "function predicate(");
-        debugger;
         var syntax = esprima.parse(predicateSource);
         let toTraverse = (getNestedElement(syntax, ["body", "0", "body", "body", "0"]) as est.ReturnStatement).argument;
 

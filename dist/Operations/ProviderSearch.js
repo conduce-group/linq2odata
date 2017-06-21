@@ -5,7 +5,7 @@ var fs = require("fs");
 var path = require("path");
 var Helpers_1 = require("../Structure/Helpers");
 var Constants_1 = require("../Structure/Constants");
-function getODataProviders(directory) {
+function getODataProviders(directory, logger) {
     var files = Helpers_1.recurseFolders(directory, []);
     var odpDictionary = {};
     odpDictionary[Constants_1.odpImportString] = [Constants_1.odpClassName];

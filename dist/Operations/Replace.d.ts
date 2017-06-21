@@ -1,3 +1,4 @@
+import { Logger } from '../Structure/Logger';
 import { ExportMapping } from '../Structure/Classes';
 export declare class WhereRange {
     startArgument: number;
@@ -5,4 +6,4 @@ export declare class WhereRange {
     startWhereKeyword: number;
     endWhereKeyword: number;
 }
-export declare function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void;
+export declare function replaceWhereWithFilter(directory: string, odps: ExportMapping[], logger: Logger, dryRun: boolean): void;

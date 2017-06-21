@@ -3,6 +3,7 @@ import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PossibleODPClass, ExportMapping } from '../Structure/Classes'
+import { Logger } from '../Structure/Logger'
 import { recurseFolders, resolveImport, getNestedElement, addIfNotNull, arrayContains } from '../Structure/Helpers'
 import { odpImportString, odpClassName, defaultExtension, iODPImportString, iODPClassName } from '../Structure/Constants'
 
@@ -14,7 +15,7 @@ type estLineTypes = est.CallExpression | est.AssignmentExpression | est.MemberEx
  * @param {string} directory
  * @return {ExportMapping[]} all odataproviders in the directory
  */
-export function getODataProviders(directory: string): ExportMapping[] 
+export function getODataProviders(directory: string, logger: Logger): ExportMapping[] 
 {
     let files: string[] = recurseFolders(directory, []);
     let odpDictionary: { [file: string]: string[] } = {};

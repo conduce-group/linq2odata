@@ -15,7 +15,6 @@ var LINQOData = (function () {
     }
     LINQOData.FilterFromWhereArgument = function (predicate) {
         var predicateSource = predicate.replace("function (", "function predicate(");
-        debugger;
         var syntax = esprima.parse(predicateSource);
         var toTraverse = Helpers_1.getNestedElement(syntax, ["body", "0", "body", "body", "0"]).argument;
         var newFncBody = "";

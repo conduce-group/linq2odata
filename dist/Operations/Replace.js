@@ -12,28 +12,34 @@ var WhereRange = (function () {
     return WhereRange;
 }());
 exports.WhereRange = WhereRange;
-function replaceWhereWithFilter(directory, odps) {
+function replaceWhereWithFilter(directory, odps, logger, dryRun) {
     var files = Helpers_1.recurseFolders(directory, []);
+    var changeOccurred = false;
     for (var index in files) {
         var filename = files[index];
-        if (filename == "..\\testest\\Presentation\\ViewModels\\Concrete\\UserListViewModel.js") {
-        }
         var fileDirectory = path.parse(filename).dir;
         var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
         var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
         for (var whereIndex in fileWheres) {
             var newFilter = LINQOData_1.LINQOData.FilterFromWhereArgument(fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument));
+            logger.debug("Changing line: " + fileContent.substr(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument));
+            logger.debug("    to: " + Constants_1.filterKeyword + newFilter);
             fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
                     + Constants_1.filterKeyword
                     + newFilter
                     + fileContent.substr(fileWheres[whereIndex].endArgument);
+            if (!dryRun) {
+                fs.writeFileSync(filename, fileContent);
+            }
         }
         if (fileWheres.length > 0) {
-            console.log(fileContent);
-            console.log(fileWheres.length + " replacement for " + filename);
+            logger.info(fileWheres.length + " replacements for " + filename);
         }
+    }
+    if (!changeOccurred) {
+        logger.info("No files found which import ODataProvider class and use a Where statement");
     }
 }
 exports.replaceWhereWithFilter = replaceWhereWithFilter;
@@ -55,7 +61,6 @@ function getWheresInBody(body, directory, odps, hasImport) {
             case "Decorator":
                 break;
             case "Where":
-                debugger;
                 var whereRange = getWhere(line);
                 if (whereRange) {
                     wheres.push(whereRange);

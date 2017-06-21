@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Convert linq to an OData query",
   "bin": {
-    "linq2odata": "src/index.js"
+    "linq2odata": "dist/index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

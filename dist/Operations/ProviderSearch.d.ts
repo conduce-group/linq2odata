@@ -1,2 +1,3 @@
 import { ExportMapping } from '../Structure/Classes';
-export declare function getODataProviders(directory: string): ExportMapping[];
+import { Logger } from '../Structure/Logger';
+export declare function getODataProviders(directory: string, logger: Logger): ExportMapping[];

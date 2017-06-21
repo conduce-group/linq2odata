@@ -3,6 +3,7 @@ import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LINQOData } from './LINQOData';
+import { Logger } from '../Structure/Logger'
 import { filterKeyword } from '../Structure/Constants';
 import { ExportMapping } from '../Structure/Classes'
 import { resolveImport, getNestedElement, recurseFolders } from '../Structure/Helpers'
@@ -19,9 +20,10 @@ type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "Other";
 type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | "Other";
 
 
-export function replaceWhereWithFilter(directory: string, odps: ExportMapping[]): void
+export function replaceWhereWithFilter(directory: string, odps: ExportMapping[], logger: Logger, dryRun: boolean): void
 {
     let files = recurseFolders(directory, []);
+    let changeOccurred: boolean = false;
     for (var index in files)
     {
         let filename: string = files[index];
@@ -35,18 +37,30 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
             let newFilter = LINQOData.FilterFromWhereArgument(
                 fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument)
             );
+
+            logger.debug("Changing line: " + fileContent.substr(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument));
+            logger.debug("    to: " + filterKeyword + newFilter);
+
             fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
                 + filterKeyword
                 + newFilter
                 + fileContent.substr(fileWheres[whereIndex].endArgument);
-            fs.writeFileSync(filename, fileContent);
+
+            if (!dryRun)
+            {
+                fs.writeFileSync(filename, fileContent);
+            }
         }
         if (fileWheres.length > 0)
         {
-            console.log(fileContent);
-            console.log(fileWheres.length + " replacement for " + filename);
+            logger.info(fileWheres.length + " replacements for " + filename);
         }
+    }
+
+    if (!changeOccurred)
+    {
+        logger.info("No files found which import ODataProvider class and use a Where statement");
     }
 }
 

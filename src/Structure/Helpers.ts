@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import {  defaultExtension } from '../Structure/Constants'
 
 /**
  * Safely gets a nested property, due to typescripts current abscence of elevis operators, null if not possible
@@ -22,6 +23,23 @@ export function getNestedElement(object: any, properties: string[]): any
 
     }
     return object;
+}
+
+export function resolveImport(fileDirectory: string, importFile: string): string
+{
+    if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0)
+    {
+        importFile = path.resolve(fileDirectory, importFile);
+
+        var fileExtensionRegex = /.*\/*.*\..+/g;
+        var result = importFile.match(fileExtensionRegex);
+        if (result === null)
+        {
+            importFile += defaultExtension;
+        }
+    }
+
+    return importFile;
 }
 
 export function recurseFolders(dir : string, filelist: string[]) : string[]

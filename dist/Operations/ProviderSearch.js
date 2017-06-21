@@ -12,7 +12,7 @@ function getODataProviders(directory) {
     odpDictionary[Constants_1.iODPImportString] = [Constants_1.iODPClassName];
     var possibleODP = {};
     for (var index in files) {
-        var filename = files[index];
+        var filename = path.resolve("./", files[index]);
         var fileContent = fs.readFileSync(filename);
         var syntaxTree = esprima.parse(fileContent.toString()).body;
         var imports = {};
@@ -25,14 +25,8 @@ function getODataProviders(directory) {
                     var importResult = getImportName(line);
                     if (importResult) {
                         var importFile = importResult[0], importVariableName = importResult[1];
-                        if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0) {
-                            importFile = path.resolve(directory, importFile);
-                            var fileExtensionRegex = /.*\/*.*\..+/g;
-                            var result = importFile.match(fileExtensionRegex);
-                            if (result === null) {
-                                importFile += Constants_1.defaultExtension;
-                            }
-                        }
+                        var fileDirectory = path.parse(filename).dir;
+                        importFile = Helpers_1.resolveImport(fileDirectory, importFile);
                         imports[importVariableName] = importFile;
                     }
                     break;

@@ -3,7 +3,7 @@ import * as est from 'estree';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PossibleODPClass, ExportMapping } from '../Structure/Classes'
-import { recurseFolders, getNestedElement, addIfNotNull, arrayContains } from '../Structure/Helpers'
+import { recurseFolders, resolveImport, getNestedElement, addIfNotNull, arrayContains } from '../Structure/Helpers'
 import { odpImportString, odpClassName, defaultExtension, iODPImportString, iODPClassName } from '../Structure/Constants'
 
 type expressionTypes = "Import" | "MaybeClass" | "FncExp" | "Export" | "Other";
@@ -24,7 +24,7 @@ export function getODataProviders(directory: string): ExportMapping[]
 
     for (var index in files)
     {
-        let filename = files[index];
+        let filename = path.resolve("./", files[index]);
         let fileContent = fs.readFileSync(filename);
         let syntaxTree = esprima.parse(fileContent.toString()).body;
         let imports: { [importName: string]: string } = {};
@@ -41,17 +41,8 @@ export function getODataProviders(directory: string): ExportMapping[]
                     if (importResult)
                     {
                         let [importFile, importVariableName] = importResult;
-                        if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0)
-                        {
-                            importFile = path.resolve(directory, importFile);
-
-                            var fileExtensionRegex = /.*\/*.*\..+/g;
-                            var result = importFile.match(fileExtensionRegex);
-                            if (result === null)
-                            {
-                                importFile += defaultExtension;
-                            }
-                        }
+                        let fileDirectory = path.parse(filename).dir;
+                        importFile = resolveImport(fileDirectory, importFile);
 
                         imports[importVariableName] = importFile;
                     }
@@ -79,7 +70,6 @@ export function getODataProviders(directory: string): ExportMapping[]
 
         possibleODP[filename] = populatePossibleODPS(exportedClasses, extendees, imports);
     }
-
     odpDictionary = recurseODPImplementors(odpDictionary, possibleODP);
     let oDataProviders: ExportMapping[] = dictionaryToExportMapping(odpDictionary);
 
@@ -132,6 +122,14 @@ function dictionaryToExportMapping(odpDictionary: { [file: string]: string[] }):
     return result;
 }
 
+/**
+ * Given possible ODPs, returns those which are based off of what classes extended - done recursively to allow for class extending classes extending classes
+ * Iterates over diminishing list of possible ODPs, if one is found to be an ODP it is added to the list, removed from the list for the next iteration and the fact that a change occurred in the lists is noted in the change variable
+ * @param {{[file: string]: string[]}} odpDictionary
+ * @param {{[file: string]: PossibleODPClass[]}} odpDictionary
+ * @param {boolean} change - was there a change in previous list
+ * @return {{ [file: string]: string[] } ]} all the ODP
+ */
 function recurseODPImplementors(odpDictionary: { [file: string]: string[] }, possibleODP: { [file: string]: PossibleODPClass[] }, change: boolean = true): { [file: string]: string[] } 
 {
     if (!change)

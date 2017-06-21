@@ -5,7 +5,7 @@ import * as path from 'path';
 import { LINQOData } from './LINQOData';
 import { filterKeyword } from '../Structure/Constants';
 import { ExportMapping } from '../Structure/Classes'
-import { getNestedElement, recurseFolders } from '../Structure/Helpers'
+import { resolveImport, getNestedElement, recurseFolders } from '../Structure/Helpers'
 
 export class WhereRange
 {
@@ -25,9 +25,11 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
     for (var index in files)
     {
         let filename: string = files[index];
+        let fileDirectory = path.parse(filename).dir;
         let fileContent = fs.readFileSync(filename).toString();
         let syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        let fileWheres = getWheresInBody(syntaxTree.body, directory, odps);
+        let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
+
         for (var whereIndex in fileWheres)
         {
             let newFilter = LINQOData.FilterFromWhereArgument(
@@ -38,7 +40,7 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
                 + filterKeyword
                 + newFilter
                 + fileContent.substr(fileWheres[whereIndex].endArgument);
-            //fs.writeFileSync(filename, fileContent);
+            fs.writeFileSync(filename, fileContent);
         }
         if (fileWheres.length > 0)
         {
@@ -48,9 +50,8 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[])
     }
 }
 
-function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[]): WhereRange[]
+function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[], hasImport: boolean = false): WhereRange[]
 {
-    let hasImport: boolean = false;
     let wheres = [] as WhereRange[];
 
     for (var lineNum in body)
@@ -66,7 +67,7 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport));
                 break;
             case "Decorator":
                 //check  types of arguments
@@ -124,7 +125,7 @@ function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps:
 {
     var className = null;
     let odpClassName = getODPClassIfInODPs(
-        path.resolve(directory, getNestedElement(line, ["arguments", "0", "value"])),
+        resolveImport(directory, getNestedElement(line, ["arguments", "0", "value"])),
         odps
     );
     if (odpClassName)
@@ -143,7 +144,6 @@ function getODPClassIfODPFile(line: est.CallExpression, directory: string, odps:
                 return odps[index].className;
             }
         }
-
         return null;
     }
 }

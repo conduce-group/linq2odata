@@ -2,6 +2,7 @@
 exports.__esModule = true;
 var fs = require("fs");
 var path = require("path");
+var Constants_1 = require("../Structure/Constants");
 function getNestedElement(object, properties) {
     for (var index in properties) {
         if (object[properties[index]]) {
@@ -14,6 +15,18 @@ function getNestedElement(object, properties) {
     return object;
 }
 exports.getNestedElement = getNestedElement;
+function resolveImport(fileDirectory, importFile) {
+    if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0) {
+        importFile = path.resolve(fileDirectory, importFile);
+        var fileExtensionRegex = /.*\/*.*\..+/g;
+        var result = importFile.match(fileExtensionRegex);
+        if (result === null) {
+            importFile += Constants_1.defaultExtension;
+        }
+    }
+    return importFile;
+}
+exports.resolveImport = resolveImport;
 function recurseFolders(dir, filelist) {
     var files = fs.readdirSync(dir);
     filelist = filelist || [];

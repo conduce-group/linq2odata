@@ -16,9 +16,12 @@ function replaceWhereWithFilter(directory, odps) {
     var files = Helpers_1.recurseFolders(directory, []);
     for (var index in files) {
         var filename = files[index];
+        if (filename == "..\\testest\\Presentation\\ViewModels\\Concrete\\UserListViewModel.js") {
+        }
+        var fileDirectory = path.parse(filename).dir;
         var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        var fileWheres = getWheresInBody(syntaxTree.body, directory, odps);
+        var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
         for (var whereIndex in fileWheres) {
             var newFilter = LINQOData_1.LINQOData.FilterFromWhereArgument(fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument));
             fileContent =
@@ -34,8 +37,8 @@ function replaceWhereWithFilter(directory, odps) {
     }
 }
 exports.replaceWhereWithFilter = replaceWhereWithFilter;
-function getWheresInBody(body, directory, odps) {
-    var hasImport = false;
+function getWheresInBody(body, directory, odps, hasImport) {
+    if (hasImport === void 0) { hasImport = false; }
     var wheres = [];
     for (var lineNum in body) {
         var _a = getLineType(body[lineNum]), lineClassification = _a[0], line = _a[1];
@@ -47,11 +50,12 @@ function getWheresInBody(body, directory, odps) {
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps, hasImport));
                 break;
             case "Decorator":
                 break;
             case "Where":
+                debugger;
                 var whereRange = getWhere(line);
                 if (whereRange) {
                     wheres.push(whereRange);
@@ -87,7 +91,7 @@ function getLineType(line) {
 }
 function getODPClassIfODPFile(line, directory, odps) {
     var className = null;
-    var odpClassName = getODPClassIfInODPs(path.resolve(directory, Helpers_1.getNestedElement(line, ["arguments", "0", "value"])), odps);
+    var odpClassName = getODPClassIfInODPs(Helpers_1.resolveImport(directory, Helpers_1.getNestedElement(line, ["arguments", "0", "value"])), odps);
     if (odpClassName) {
         className = odpClassName;
     }

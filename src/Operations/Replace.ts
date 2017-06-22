@@ -98,19 +98,20 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
                 for (var declarationIndex in varDeclarations)
                 {
                     let currentDeclarationInitialisation = getNestedElement(varDeclarations[declarationIndex], ["init"]) as est.Statement | est.ModuleDeclaration;
-                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport));
+                    wheres = wheres.concat(
+                        getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport)
+                    );
                 }
                 break;
             case "CallExpression":
-                let callArguments = getNestedElement(line, ["arguments"]);
-                for (var argumentIndex in callArguments)
-                {
-                    let currentArgument = callArguments[argumentIndex] as est.Statement | est.ModuleDeclaration;
-                    wheres = wheres.concat(getWheresInBody([currentArgument], directory, odps, hasImport));
-                }
+                wheres = wheres.concat(
+                    getWheresInCallExpression(line as est.CallExpression, directory, odps, hasImport)
+                );
                 break;
             case "GeneralExpression":
-                wheres = wheres.concat(getWheresInBody(getExpression(line as est.ExpressionStatement), directory, odps, hasImport));
+                wheres = wheres.concat(
+                    getWheresInBody(getExpression(line as est.ExpressionStatement), directory, odps, hasImport)
+                );
                 break;
             case "Decorator":
                 //check  types of arguments
@@ -129,6 +130,27 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
 
     return hasImport ? wheres : [];
 }
+
+function getWheresInCallExpression(line: est.CallExpression, directory: string, odps: ExportMapping[], hasImport: boolean = false): WhereRange[]
+{
+    let wheres = [] as WhereRange[];
+
+    let calleeObject = getNestedElement(line, ["callee", "object"]);
+    if (calleeObject)
+    {
+        wheres = wheres.concat(getWheresInBody([calleeObject], directory, odps, hasImport));
+    }
+
+    let callArguments = getNestedElement(line, ["arguments"]);
+    for (var argumentIndex in callArguments)
+    {
+        let currentArgument = callArguments[argumentIndex] as est.Statement | est.ModuleDeclaration;
+        wheres = wheres.concat(getWheresInBody([currentArgument], directory, odps, hasImport));
+    }
+
+    return wheres;
+}
+
 
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
 {

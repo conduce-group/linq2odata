@@ -18,7 +18,7 @@ exports.getNestedElement = getNestedElement;
 function resolveImport(fileDirectory, importFile) {
     if (importFile.indexOf("./") == 0 || importFile.indexOf("../") == 0) {
         importFile = path.resolve(fileDirectory, importFile);
-        var fileExtensionRegex = /.*\/*.*\..+/g;
+        var fileExtensionRegex = /.*\/*[^\\\/]*\.[^\\\/]+$/;
         var result = importFile.match(fileExtensionRegex);
         if (result === null) {
             importFile += Constants_1.defaultExtension;

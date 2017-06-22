@@ -31,7 +31,7 @@ export function resolveImport(fileDirectory: string, importFile: string): string
     {
         importFile = path.resolve(fileDirectory, importFile);
 
-        var fileExtensionRegex = /.*\/*.*\..+/g;
+        var fileExtensionRegex = /.*\/*[^\\\/]*\.[^\\\/]+$/;
         var result = importFile.match(fileExtensionRegex);
         if (result === null)
         {

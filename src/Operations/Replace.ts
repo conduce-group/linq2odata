@@ -30,10 +30,8 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
         let fileDirectory = path.parse(filename).dir;
         let fileContent = fs.readFileSync(filename).toString();
         let syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        if (filename.match(/.*UserListViewModel.*/))
-            debugger;
 
-        let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false, fileContent);
+        let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false);
 
         if (fileWheres.length > 0)
         {
@@ -76,24 +74,13 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
     }
 }
 
-function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[], hasImport: boolean = false, fileContent: string): WhereRange[]
+function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[], hasImport: boolean = false): WhereRange[]
 {
     let wheres = [] as WhereRange[];
 
     for (var lineNum in body)
     {
         let [lineClassification, line] = getLineType(body[lineNum]);
-
-        if (line != null && typeof (line) != undefined)
-        {
-            line = (line || { range: [1, 1] });
-            let l1 = line.range || [0, 0];
-            let deesLines = fileContent.substring(l1[0], l1[1]);
-            if (deesLines.match(/.*Where.*/))
-            {
-                debugger;
-            }
-        }
 
         switch (lineClassification)
         {
@@ -105,14 +92,14 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport, fileContent));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport));
                 break;
             case "VarDeclar":
                 let varDeclarations = getNestedElement(line, ["declarations"]);
                 for (var declarationIndex in varDeclarations)
                 {
                     let currentDeclarationInitialisation = getNestedElement(varDeclarations[declarationIndex], ["init"]) as est.Statement | est.ModuleDeclaration;
-                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport, fileContent));
+                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport));
                 }
                 break;
             case "Decorator":

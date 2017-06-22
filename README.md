@@ -45,19 +45,15 @@ g_();
 It looks over the `-o` folder recursively finding all those who extend ODataProvider, or who extend and extendee or who extendee an extendee of an extendee etc.. Then it'll search over `-s` folder recursively looking for those who import an extendee and use `.Where` on __any__ variable. These will be replaced by `.filter()` statements.
 
 ### Assumptions
-0. That everything is in scope always. Yeah, that's bad - make a pull request. So naming another variable the same name with the same `Where` will get linq2odata confused
 1. Constants:
     - Import `ODataProvider` from 'linq2odata/dist/ODataProvider' [see Constants.ts to change]
     - Use require to import into a variable that is used [used in `FileParser::getNameAndLineODPImport`]
     - Default file ending of `.js` [see Constants.ts to change]
-3. That relative file imports are done starting with "./" or "../"
-4. Currently, that your ODataProvider is injected via by Angular2 method
-5. Currently, that you do not use multiple declarations of classes on one line
+2. That relative file imports are done starting with "./" or "../"
+3. That any use of `.Where` in a file that has imported an OData Provider (or extension of) should be replaced by filter
 
 ## Todo
-- [ ] Deal with multiple definitions in same file
-- [ ] ensure replacement on correct object type 
-    - [ ] Test non Angular2 Where replacement
+- [ ] Use angular dependancy injection to guarantee correct object
 - [ ] better checking of lines
   + iterate over all declarations instead of assuming it's in first one of line
   + ensure that a class has class-y things in it

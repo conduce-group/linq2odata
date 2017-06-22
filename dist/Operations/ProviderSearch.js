@@ -52,6 +52,7 @@ function getODataProviders(directory, logger) {
     }
     odpDictionary = recurseODPImplementors(odpDictionary, possibleODP);
     var oDataProviders = dictionaryToExportMapping(odpDictionary);
+    logger.debug("Found " + oDataProviders.length + " providers");
     return oDataProviders;
 }
 exports.getODataProviders = getODataProviders;

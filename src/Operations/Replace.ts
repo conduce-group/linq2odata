@@ -32,14 +32,27 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
         let syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
         let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
 
+        if (fileWheres.length > 0)
+        {
+            logger.info(fileWheres.length + " replacements for " + filename);
+            changeOccurred = true;
+        }
+        else
+        {
+            logger.debug("No replacements for Where statement found in " + filename);
+        }
+
         for (var whereIndex in fileWheres)
         {
-            let newFilter = LINQOData.FilterFromWhereArgument(
-                fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument)
-            );
+            let predicate: string =
+                fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument);
+            let predicateAndWhere: string =
+                fileContent.substring(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument)
 
-            logger.debug("Changing line: " + fileContent.substr(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument));
-            logger.debug("    to: " + filterKeyword + newFilter);
+            let newFilter = LINQOData.FilterFromWhereArgument(predicate);
+
+            logger.debug("  Changing line: " + predicateAndWhere);
+            logger.debug("             to: " + filterKeyword + newFilter);
 
             fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
@@ -51,10 +64,6 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
             {
                 fs.writeFileSync(filename, fileContent);
             }
-        }
-        if (fileWheres.length > 0)
-        {
-            logger.info(fileWheres.length + " replacements for " + filename);
         }
     }
 

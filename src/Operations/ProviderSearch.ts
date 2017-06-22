@@ -74,6 +74,8 @@ export function getODataProviders(directory: string, logger: Logger): ExportMapp
     odpDictionary = recurseODPImplementors(odpDictionary, possibleODP);
     let oDataProviders: ExportMapping[] = dictionaryToExportMapping(odpDictionary);
 
+    logger.debug("Found " + oDataProviders.length + " providers");
+
     return oDataProviders;
 }
 

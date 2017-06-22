@@ -8,7 +8,9 @@ var operatorMapping = {
     ">": "gt",
     ">=": "ge",
     "<": "lt",
-    "<=": "le"
+    "<=": "le",
+    "&&": "and",
+    "||": "or"
 };
 var LINQOData = (function () {
     function LINQOData() {

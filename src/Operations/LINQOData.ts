@@ -14,7 +14,9 @@ const operatorMapping: IOpMap =
         ">": "gt",
         ">=": "ge",
         "<": "lt",
-        "<=": "le"
+        "<=": "le",
+        "&&": "and",
+        "||": "or"
     }
 
 export class LINQOData

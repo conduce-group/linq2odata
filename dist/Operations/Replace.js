@@ -21,10 +21,19 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
         var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
         var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
+        if (fileWheres.length > 0) {
+            logger.info(fileWheres.length + " replacements for " + filename);
+            changeOccurred = true;
+        }
+        else {
+            logger.debug("No replacements for Where statement found in " + filename);
+        }
         for (var whereIndex in fileWheres) {
-            var newFilter = LINQOData_1.LINQOData.FilterFromWhereArgument(fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument));
-            logger.debug("Changing line: " + fileContent.substr(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument));
-            logger.debug("    to: " + Constants_1.filterKeyword + newFilter);
+            var predicate = fileContent.substring(fileWheres[whereIndex].startArgument, fileWheres[whereIndex].endArgument);
+            var predicateAndWhere = fileContent.substring(fileWheres[whereIndex].startWhereKeyword, fileWheres[whereIndex].endArgument);
+            var newFilter = LINQOData_1.LINQOData.FilterFromWhereArgument(predicate);
+            logger.debug("  Changing line: " + predicateAndWhere);
+            logger.debug("             to: " + Constants_1.filterKeyword + newFilter);
             fileContent =
                 fileContent.substr(0, fileWheres[whereIndex].startWhereKeyword)
                     + Constants_1.filterKeyword
@@ -33,9 +42,6 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
             if (!dryRun) {
                 fs.writeFileSync(filename, fileContent);
             }
-        }
-        if (fileWheres.length > 0) {
-            logger.info(fileWheres.length + " replacements for " + filename);
         }
     }
     if (!changeOccurred) {

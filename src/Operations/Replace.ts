@@ -16,8 +16,8 @@ export class WhereRange
     public startWhereKeyword: number;
     public endWhereKeyword: number;
 }
-type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "Other";
-type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | "Other";
+type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "VarDeclar" | "Other";
+type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | est.VariableDeclaration | null;
 
 
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[], logger: Logger, dryRun: boolean): void
@@ -30,7 +30,10 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
         let fileDirectory = path.parse(filename).dir;
         let fileContent = fs.readFileSync(filename).toString();
         let syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
+        if (filename.match(/.*UserListViewModel.*/))
+            debugger;
+
+        let fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false, fileContent);
 
         if (fileWheres.length > 0)
         {
@@ -73,13 +76,25 @@ export function replaceWhereWithFilter(directory: string, odps: ExportMapping[],
     }
 }
 
-function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[], hasImport: boolean = false): WhereRange[]
+function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, directory: string, odps: ExportMapping[], hasImport: boolean = false, fileContent: string): WhereRange[]
 {
     let wheres = [] as WhereRange[];
 
     for (var lineNum in body)
     {
         let [lineClassification, line] = getLineType(body[lineNum]);
+
+        if (line != null && typeof (line) != undefined)
+        {
+            line = (line || { range: [1, 1] });
+            let l1 = line.range || [0, 0];
+            let deesLines = fileContent.substring(l1[0], l1[1]);
+            if (deesLines.match(/.*Where.*/))
+            {
+                debugger;
+            }
+        }
+
         switch (lineClassification)
         {
             case "Import":
@@ -90,7 +105,15 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport, fileContent));
+                break;
+            case "VarDeclar":
+                let varDeclarations = getNestedElement(line, ["declarations"]);
+                for (var declarationIndex in varDeclarations)
+                {
+                    let currentDeclarationInitialisation = getNestedElement(varDeclarations[declarationIndex], ["init"]) as est.Statement | est.ModuleDeclaration;
+                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport, fileContent));
+                }
                 break;
             case "Decorator":
                 //check  types of arguments
@@ -112,7 +135,7 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
 
 function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expression): [expressionTypes, estLineTypes]
 {
-    let lineType = ["Other", "Other"] as [expressionTypes, estLineTypes];
+    let lineType = ["Other", null] as [expressionTypes, estLineTypes];
     // Import statement
     if (getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require')
     {
@@ -136,11 +159,21 @@ function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expressio
     {
         lineType = ["Where", getNestedElement(line, ["expression"]) as est.CallExpression];
     }
+    else if (getNestedElement(line, ["callee", "property", "name"]) === 'Where')
+    {
+        lineType = ["Where", line as est.CallExpression];
+    }
     // Decoration
     else if (getNestedElement(line, ["expression", "right", "callee", "name"]) === '__decorate')
     {
         lineType = ["Decorator", line as est.ExpressionStatement];
     }
+
+    else if (getNestedElement(line, ["type"]) === 'VariableDeclaration')
+    {
+        lineType = ["VarDeclar", line as est.VariableDeclaration];
+    }
+
     return lineType;
 }
 

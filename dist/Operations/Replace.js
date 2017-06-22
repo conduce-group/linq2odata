@@ -20,7 +20,9 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
         var fileDirectory = path.parse(filename).dir;
         var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps);
+        if (filename.match(/.*UserListViewModel.*/))
+            debugger;
+        var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false, fileContent);
         if (fileWheres.length > 0) {
             logger.info(fileWheres.length + " replacements for " + filename);
             changeOccurred = true;
@@ -49,11 +51,19 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
     }
 }
 exports.replaceWhereWithFilter = replaceWhereWithFilter;
-function getWheresInBody(body, directory, odps, hasImport) {
+function getWheresInBody(body, directory, odps, hasImport, fileContent) {
     if (hasImport === void 0) { hasImport = false; }
     var wheres = [];
     for (var lineNum in body) {
         var _a = getLineType(body[lineNum]), lineClassification = _a[0], line = _a[1];
+        if (line != null && typeof (line) != undefined) {
+            line = (line || { range: [1, 1] });
+            var l1 = line.range || [0, 0];
+            var deesLines = fileContent.substring(l1[0], l1[1]);
+            if (deesLines.match(/.*Where.*/)) {
+                debugger;
+            }
+        }
         switch (lineClassification) {
             case "Import":
                 var odpclass = getODPClassIfODPFile(line, directory, odps);
@@ -62,7 +72,14 @@ function getWheresInBody(body, directory, odps, hasImport) {
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps, hasImport));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps, hasImport, fileContent));
+                break;
+            case "VarDeclar":
+                var varDeclarations = Helpers_1.getNestedElement(line, ["declarations"]);
+                for (var declarationIndex in varDeclarations) {
+                    var currentDeclarationInitialisation = Helpers_1.getNestedElement(varDeclarations[declarationIndex], ["init"]);
+                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport, fileContent));
+                }
                 break;
             case "Decorator":
                 break;
@@ -79,7 +96,7 @@ function getWheresInBody(body, directory, odps, hasImport) {
     return hasImport ? wheres : [];
 }
 function getLineType(line) {
-    var lineType = ["Other", "Other"];
+    var lineType = ["Other", null];
     if (Helpers_1.getNestedElement(line, ["declarations", "0", "init", "callee", "name"]) === 'require') {
         lineType = ["Import", Helpers_1.getNestedElement(line, ["declarations", "0", "init"])];
     }
@@ -95,8 +112,14 @@ function getLineType(line) {
     else if (Helpers_1.getNestedElement(line, ["expression", "callee", "property", "name"]) === 'Where') {
         lineType = ["Where", Helpers_1.getNestedElement(line, ["expression"])];
     }
+    else if (Helpers_1.getNestedElement(line, ["callee", "property", "name"]) === 'Where') {
+        lineType = ["Where", line];
+    }
     else if (Helpers_1.getNestedElement(line, ["expression", "right", "callee", "name"]) === '__decorate') {
         lineType = ["Decorator", line];
+    }
+    else if (Helpers_1.getNestedElement(line, ["type"]) === 'VariableDeclaration') {
+        lineType = ["VarDeclar", line];
     }
     return lineType;
 }

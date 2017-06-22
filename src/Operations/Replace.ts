@@ -19,7 +19,6 @@ export class WhereRange
 type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "VarDeclarations" | "GeneralExpression" | "CallExpression" | "Other";
 type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | est.Expression | est.VariableDeclaration | null;
 
-
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[], logger: Logger, dryRun: boolean): void
 {
     let files = recurseFolders(directory, []);
@@ -247,7 +246,6 @@ function getFunctionBody(fnc: est.FunctionExpression): Array<est.Statement | est
 
     return result;
 }
-
 
 function getExpression(fnc: est.ExpressionStatement): Array<est.Statement | est.ModuleDeclaration>
 {

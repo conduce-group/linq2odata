@@ -16,8 +16,8 @@ export class WhereRange
     public startWhereKeyword: number;
     public endWhereKeyword: number;
 }
-type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "VarDeclar" | "Other";
-type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | est.VariableDeclaration | null;
+type expressionTypes = "Import" | "FncExp" | "Decorator" | "Where" | "VarDeclarations" | "GeneralExpression" | "CallExpression" | "Other";
+type estLineTypes = est.CallExpression | est.FunctionExpression | est.ExpressionStatement | est.Expression | est.VariableDeclaration | null;
 
 
 export function replaceWhereWithFilter(directory: string, odps: ExportMapping[], logger: Logger, dryRun: boolean): void
@@ -94,13 +94,24 @@ function getWheresInBody(body: Array<est.Statement | est.ModuleDeclaration>, dir
             case "FncExp":
                 wheres = wheres.concat(getWheresInBody(getFunctionBody(line as est.FunctionExpression), directory, odps, hasImport));
                 break;
-            case "VarDeclar":
+            case "VarDeclarations":
                 let varDeclarations = getNestedElement(line, ["declarations"]);
                 for (var declarationIndex in varDeclarations)
                 {
                     let currentDeclarationInitialisation = getNestedElement(varDeclarations[declarationIndex], ["init"]) as est.Statement | est.ModuleDeclaration;
                     wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport));
                 }
+                break;
+            case "CallExpression":
+                let callArguments = getNestedElement(line, ["arguments"]);
+                for (var argumentIndex in callArguments)
+                {
+                    let currentArgument = callArguments[argumentIndex] as est.Statement | est.ModuleDeclaration;
+                    wheres = wheres.concat(getWheresInBody([currentArgument], directory, odps, hasImport));
+                }
+                break;
+            case "GeneralExpression":
+                wheres = wheres.concat(getWheresInBody(getExpression(line as est.ExpressionStatement), directory, odps, hasImport));
                 break;
             case "Decorator":
                 //check  types of arguments
@@ -155,10 +166,20 @@ function getLineType(line: est.Statement | est.ModuleDeclaration | est.Expressio
     {
         lineType = ["Decorator", line as est.ExpressionStatement];
     }
-
+    // Non Where CallExpression
+    else if (getNestedElement(line, ["type"]) === 'CallExpression')
+    {
+        lineType = ["CallExpression", line as est.CallExpression];
+    }
+    // ExpressionStatement
+    else if (getNestedElement(line, ["type"]) === 'ExpressionStatement')
+    {
+        lineType = ["GeneralExpression", line as est.Expression];
+    }
+    //VarDeclarations
     else if (getNestedElement(line, ["type"]) === 'VariableDeclaration')
     {
-        lineType = ["VarDeclar", line as est.VariableDeclaration];
+        lineType = ["VarDeclarations", line as est.VariableDeclaration];
     }
 
     return lineType;
@@ -219,6 +240,19 @@ function getFunctionBody(fnc: est.FunctionExpression): Array<est.Statement | est
 {
     let result: Array<est.Statement | est.ModuleDeclaration> =
         getNestedElement(fnc, ["body", "body"]);
+    if (!result)
+    {
+        result = [];
+    }
+
+    return result;
+}
+
+
+function getExpression(fnc: est.ExpressionStatement): Array<est.Statement | est.ModuleDeclaration>
+{
+    let result: Array<est.Statement | est.ModuleDeclaration> =
+        [getNestedElement(fnc, ["expression"])];
     if (!result)
     {
         result = [];

@@ -20,9 +20,7 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
         var fileDirectory = path.parse(filename).dir;
         var fileContent = fs.readFileSync(filename).toString();
         var syntaxTree = esprima.parse(fileContent, { range: true, loc: true });
-        if (filename.match(/.*UserListViewModel.*/))
-            debugger;
-        var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false, fileContent);
+        var fileWheres = getWheresInBody(syntaxTree.body, fileDirectory, odps, false);
         if (fileWheres.length > 0) {
             logger.info(fileWheres.length + " replacements for " + filename);
             changeOccurred = true;
@@ -51,19 +49,11 @@ function replaceWhereWithFilter(directory, odps, logger, dryRun) {
     }
 }
 exports.replaceWhereWithFilter = replaceWhereWithFilter;
-function getWheresInBody(body, directory, odps, hasImport, fileContent) {
+function getWheresInBody(body, directory, odps, hasImport) {
     if (hasImport === void 0) { hasImport = false; }
     var wheres = [];
     for (var lineNum in body) {
         var _a = getLineType(body[lineNum]), lineClassification = _a[0], line = _a[1];
-        if (line != null && typeof (line) != undefined) {
-            line = (line || { range: [1, 1] });
-            var l1 = line.range || [0, 0];
-            var deesLines = fileContent.substring(l1[0], l1[1]);
-            if (deesLines.match(/.*Where.*/)) {
-                debugger;
-            }
-        }
         switch (lineClassification) {
             case "Import":
                 var odpclass = getODPClassIfODPFile(line, directory, odps);
@@ -72,14 +62,24 @@ function getWheresInBody(body, directory, odps, hasImport, fileContent) {
                 }
                 break;
             case "FncExp":
-                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps, hasImport, fileContent));
+                wheres = wheres.concat(getWheresInBody(getFunctionBody(line), directory, odps, hasImport));
                 break;
-            case "VarDeclar":
+            case "VarDeclarations":
                 var varDeclarations = Helpers_1.getNestedElement(line, ["declarations"]);
                 for (var declarationIndex in varDeclarations) {
                     var currentDeclarationInitialisation = Helpers_1.getNestedElement(varDeclarations[declarationIndex], ["init"]);
-                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport, fileContent));
+                    wheres = wheres.concat(getWheresInBody([currentDeclarationInitialisation], directory, odps, hasImport));
                 }
+                break;
+            case "CallExpression":
+                var callArguments = Helpers_1.getNestedElement(line, ["arguments"]);
+                for (var argumentIndex in callArguments) {
+                    var currentArgument = callArguments[argumentIndex];
+                    wheres = wheres.concat(getWheresInBody([currentArgument], directory, odps, hasImport));
+                }
+                break;
+            case "GeneralExpression":
+                wheres = wheres.concat(getWheresInBody(getExpression(line), directory, odps, hasImport));
                 break;
             case "Decorator":
                 break;
@@ -118,8 +118,14 @@ function getLineType(line) {
     else if (Helpers_1.getNestedElement(line, ["expression", "right", "callee", "name"]) === '__decorate') {
         lineType = ["Decorator", line];
     }
+    else if (Helpers_1.getNestedElement(line, ["type"]) === 'CallExpression') {
+        lineType = ["CallExpression", line];
+    }
+    else if (Helpers_1.getNestedElement(line, ["type"]) === 'ExpressionStatement') {
+        lineType = ["GeneralExpression", line];
+    }
     else if (Helpers_1.getNestedElement(line, ["type"]) === 'VariableDeclaration') {
-        lineType = ["VarDeclar", line];
+        lineType = ["VarDeclarations", line];
     }
     return lineType;
 }
@@ -157,6 +163,13 @@ function getWhere(fnc) {
 }
 function getFunctionBody(fnc) {
     var result = Helpers_1.getNestedElement(fnc, ["body", "body"]);
+    if (!result) {
+        result = [];
+    }
+    return result;
+}
+function getExpression(fnc) {
+    var result = [Helpers_1.getNestedElement(fnc, ["expression"])];
     if (!result) {
         result = [];
     }
